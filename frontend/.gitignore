@@ -1,0 +1,43 @@
+# Vào thư mục frontend
+cd ../frontend
+
+# Tạo file .gitignore
+cat > .gitignore << 'EOF'
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Cache
+.cache/
+*.tsbuildinfo
+
+# Public assets (nếu có)
+public/uploads/
+public/images/temp/
+EOF
