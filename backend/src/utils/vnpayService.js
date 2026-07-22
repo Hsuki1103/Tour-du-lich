@@ -40,7 +40,8 @@ export const createVNPayPayment = (orderInfo) => {
             return { success: false, message: 'Số tiền không hợp lệ.' };
         }
 
-        const txnRef = `${orderInfo.ma_don_hang}`;
+        // ⭐ SỬ DỤNG TXN_REF TỪ ORDER INFO HOẶC TỰ TẠO
+        const txnRef = orderInfo.txn_ref || `${orderInfo.ma_don_hang}_${Date.now()}`;
 
         let ipAddress = orderInfo.ip_address || '127.0.0.1';
         if (ipAddress === '::1' || ipAddress === '::ffff:127.0.0.1') {
@@ -54,7 +55,7 @@ export const createVNPayPayment = (orderInfo) => {
             'vnp_Amount': amount,
             'vnp_CurrCode': 'VND',
             'vnp_TxnRef': txnRef,
-            'vnp_OrderInfo': `Thanh toan don hang ${orderInfo.ma_don_hang}`.replace(/ /g, '_'),
+            'vnp_OrderInfo': `Thanh toan don hang ${orderInfo.ma_don_hang}`,
             'vnp_OrderType': 'other',
             'vnp_Locale': 'vn',
             'vnp_ReturnUrl': returnUrl,
@@ -63,12 +64,11 @@ export const createVNPayPayment = (orderInfo) => {
             'vnp_ExpireDate': moment().add(15, 'minutes').format('YYYYMMDDHHmmss'),
         };
 
-        // ⭐ KHÔNG TỰ ĐỘNG THÊM vnp_BankCode
         if (orderInfo.bankCode) {
             vnp_Params['vnp_BankCode'] = orderInfo.bankCode;
         }
 
-        // ⭐ LOẠI BỎ THAM SỐ RỖNG
+        // Loại bỏ tham số rỗng
         const cleanParams = {};
         for (const key of Object.keys(vnp_Params)) {
             if (vnp_Params[key] !== null && vnp_Params[key] !== undefined && vnp_Params[key] !== '') {
@@ -76,19 +76,19 @@ export const createVNPayPayment = (orderInfo) => {
             }
         }
 
-        // ⭐ SẮP XẾP THEO ALPHABET
+        // Sắp xếp theo alphabet
         const sortedParams = sortObject(cleanParams);
 
-        // ⭐ TẠO CHUỖI KÝ (KHÔNG ENCODE)
+        // Tạo chuỗi ký
         const signData = querystring.stringify(sortedParams, { encode: false });
         console.log('📝 SignData:', signData);
 
-        // ⭐ TẠO CHỮ KÝ (HMAC SHA512)
+        // Tạo chữ ký (HMAC SHA512)
         const hmac = crypto.createHmac('sha512', hashSecret);
         const secureHash = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
         console.log('🔑 SecureHash:', secureHash);
 
-        // ⭐ TẠO URL THANH TOÁN
+        // Tạo URL thanh toán
         const paymentUrl = `${vnpUrl}?${querystring.stringify(sortedParams, { encode: false })}&vnp_SecureHash=${secureHash}`;
         console.log('✅ Payment URL created');
 
@@ -96,7 +96,8 @@ export const createVNPayPayment = (orderInfo) => {
             success: true,
             paymentUrl: paymentUrl,
             qrPaymentUrl: orderInfo.qr_code ? paymentUrl : null,
-            vnp_Params: { ...sortedParams, vnp_SecureHash: secureHash }
+            vnp_Params: { ...sortedParams, vnp_SecureHash: secureHash },
+            txn_ref: txnRef
         };
 
     } catch (error) {
@@ -106,20 +107,20 @@ export const createVNPayPayment = (orderInfo) => {
 };
 
 /**
- * Xác thực dữ liệu từ VNPay trả về (IPN và Return URL)
+ * Xác thực dữ liệu từ VNPay trả về
  */
 export const verifyVNPayReturn = (queryParams) => {
     try {
         const hashSecret = process.env.VNP_HASH_SECRET?.trim();
         
-        // ⭐ LƯU LẠI SECURE HASH
+        // Lưu lại secure hash
         const secureHash = queryParams['vnp_SecureHash'];
         
-        // ⭐ LOẠI BỎ SECURE HASH
+        // Loại bỏ secure hash
         delete queryParams['vnp_SecureHash'];
         delete queryParams['vnp_SecureHashType'];
 
-        // ⭐ GIẢI MÃ URL TẤT CẢ THAM SỐ
+        // Giải mã URL tất cả tham số
         const decodedParams = {};
         for (const key of Object.keys(queryParams)) {
             if (queryParams[key] !== null && queryParams[key] !== undefined && queryParams[key] !== '') {
@@ -127,23 +128,25 @@ export const verifyVNPayReturn = (queryParams) => {
             }
         }
 
-        // ⭐ SẮP XẾP THEO ALPHABET
+        // Sắp xếp theo alphabet
         const sortedParams = sortObject(decodedParams);
 
-        // ⭐ TẠO CHUỖI KÝ (KHÔNG ENCODE)
+        // Tạo chuỗi ký
         const signData = querystring.stringify(sortedParams, { encode: false });
         console.log('📝 verify - SignData:', signData);
 
-        // ⭐ TẠO CHỮ KÝ MỚI
+        // Tạo chữ ký mới
         const hmac = crypto.createHmac('sha512', hashSecret);
         const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
         console.log('🔑 verify - Calculated Hash:', signed);
         console.log('🔑 verify - Received Hash:', secureHash);
 
-        // ⭐ SO SÁNH
+        // So sánh
         if (secureHash === signed) {
             console.log('✅ verify - Hash matched!');
             const responseCode = queryParams['vnp_ResponseCode'];
+            console.log('📊 Response Code:', responseCode);
+            
             if (responseCode === '00') {
                 return {
                     success: true,
@@ -151,9 +154,37 @@ export const verifyVNPayReturn = (queryParams) => {
                     data: queryParams
                 };
             } else {
+                const errorMessages = {
+                    '02': 'Mã đơn hàng không hợp lệ',
+                    '03': 'Số tiền không hợp lệ',
+                    '04': 'Thông tin thanh toán không hợp lệ',
+                    '05': 'Giao dịch thất bại',
+                    '06': 'Lỗi hệ thống VNPay',
+                    '07': 'Lỗi chữ ký',
+                    '08': 'Lỗi dữ liệu',
+                    '09': 'Lỗi cấu hình',
+                    '10': 'Lỗi kết nối',
+                    '11': 'Giao dịch đã tồn tại',
+                    '12': 'Thẻ không hợp lệ',
+                    '13': 'Số dư không đủ',
+                    '14': 'Thẻ đã hết hạn',
+                    '15': 'Thẻ bị khóa',
+                    '16': 'Ngân hàng từ chối',
+                    '17': 'Không xác thực được',
+                    '18': 'OTP không hợp lệ',
+                    '19': 'OTP đã hết thời gian',
+                    '20': 'Giao dịch bị hủy',
+                    '21': 'Giao dịch đã được thanh toán',
+                    '22': 'Giao dịch không thành công',
+                    '23': 'Đang chờ xử lý',
+                    '24': 'Đã được hoàn tiền'
+                };
+                const errorMsg = errorMessages[responseCode] || `Lỗi không xác định (mã: ${responseCode})`;
+                console.log(`❌ Payment failed - ${errorMsg}`);
+                
                 return {
                     success: false,
-                    message: 'Thanh toán thất bại',
+                    message: `Thanh toán thất bại: ${errorMsg}`,
                     data: queryParams
                 };
             }

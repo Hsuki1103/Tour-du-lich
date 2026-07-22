@@ -12,13 +12,14 @@ const router = express.Router();
 // ⭐ LOG TẤT CẢ REQUEST
 router.use((req, res, next) => {
     console.log('🔗 Payment Route:', req.method, req.path);
+    console.log('🔗 Full URL:', req.originalUrl);
     next();
 });
 
-// ⭐ IPN - PUBLIC (KHÔNG CẦN AUTH) - PHẢI ĐẶT TRƯỚC /:id
+// ⭐ IPN - PUBLIC (KHÔNG CẦN AUTH)
 router.get('/vnpay-ipn', handleVNPayIPN);
 
-// ⭐ RETURN URL - PUBLIC
+// ⭐ RETURN URL - PUBLIC (KHÔNG CẦN AUTH) - PHẢI ĐẶT TRƯỚC /:id
 router.get('/vnpay-return', handleVNPayReturn);
 
 // ⭐ PROTECTED ROUTES

@@ -1,7 +1,6 @@
 import { DonDatTour, ThanhToan, LichKhoiHanh, Tour, NguoiDung, VaiTro } from '../models/index.js';
 import { createVNPayPayment as createVNPayPaymentService, verifyVNPayReturn } from '../utils/vnpayService.js';
 import { sendPaymentConfirmation } from '../utils/emailService.js';
-import { generateVoucherPDF } from '../utils/pdfService.js';
 
 // ============================================
 // TẠO THANH TOÁN VNPAY
@@ -14,22 +13,16 @@ export const createVNPayPayment = async (req, res) => {
         console.log('💳 Creating VNPay payment');
         console.log('📦 Order ID:', ma_don_hang);
         console.log('📦 Payment method:', phuong_thuc_thanh_toan);
-        console.log('📱 QR Code:', qr_code ? 'YES' : 'NO');
         console.log('========================================');
-
-        // Kiểm tra biến môi trường
-        console.log('🔑 VNP_TMN_CODE:', process.env.VNP_TMN_CODE || '❌ MISSING');
-        console.log('🔑 VNP_HASH_SECRET:', process.env.VNP_HASH_SECRET ? '✅ SET' : '❌ MISSING');
 
         if (!process.env.VNP_TMN_CODE || !process.env.VNP_HASH_SECRET) {
             console.error('❌ VNPay config missing!');
             return res.status(500).json({
                 success: false,
-                message: 'Cấu hình VNPay chưa được thiết lập. Vui lòng liên hệ quản trị viên.'
+                message: 'Cấu hình VNPay chưa được thiết lập.'
             });
         }
 
-        // Tìm đơn hàng
         const booking = await DonDatTour.findByPk(ma_don_hang, {
             include: [
                 {
@@ -47,7 +40,6 @@ export const createVNPayPayment = async (req, res) => {
             });
         }
 
-        // Kiểm tra quyền
         if (req.user.ma_nguoi_dung !== booking.ma_nguoi_dung) {
             return res.status(403).json({
                 success: false,
@@ -55,7 +47,6 @@ export const createVNPayPayment = async (req, res) => {
             });
         }
 
-        // Kiểm tra trạng thái
         if (booking.trang_thai_don_hang === 'Đã hủy') {
             return res.status(400).json({
                 success: false,
@@ -70,7 +61,6 @@ export const createVNPayPayment = async (req, res) => {
             });
         }
 
-        // Tính tiền
         let soTienCanThanhToan;
         if (phuong_thuc_thanh_toan === 'coc') {
             soTienCanThanhToan = parseFloat(booking.tien_coc);
@@ -92,9 +82,13 @@ export const createVNPayPayment = async (req, res) => {
 
         console.log('💰 Amount:', soTienCanThanhToan);
 
-        // Tạo thanh toán VNPAY
+        // ⭐ TẠO MÃ GIAO DỊCH DUY NHẤT CHO VNPAY
+        const txnRef = `${ma_don_hang}_${Date.now()}`;
+        console.log('📝 VNPay TxnRef:', txnRef);
+
         const paymentResult = createVNPayPaymentService({
-            ma_don_hang: booking.ma_don_hang,
+            ma_don_hang: ma_don_hang,
+            txn_ref: txnRef,
             so_tien: soTienCanThanhToan,
             ip_address: req.ip || req.connection.remoteAddress || '127.0.0.1',
             qr_code: qr_code || false
@@ -107,16 +101,17 @@ export const createVNPayPayment = async (req, res) => {
             });
         }
 
-        // Lưu thông tin thanh toán
+        // ⭐ LƯU THÔNG TIN THANH TOÁN
         await ThanhToan.create({
             ma_don_hang: booking.ma_don_hang,
             so_tien: soTienCanThanhToan,
             phuong_thuc: qr_code ? 'VNPayQR' : 'VNPay',
             trang_thai: 'Chờ thanh toán',
-            ma_giao_dich: paymentResult.vnp_Params.vnp_TxnRef,
+            ma_giao_dich: txnRef,
             thong_tin: {
                 ...paymentResult.vnp_Params,
-                qr_code: qr_code || false
+                qr_code: qr_code || false,
+                txn_ref: txnRef
             }
         });
 
@@ -129,7 +124,8 @@ export const createVNPayPayment = async (req, res) => {
                 qr_payment_url: paymentResult.qrPaymentUrl || null,
                 ma_don_hang: booking.ma_don_hang,
                 so_tien: soTienCanThanhToan,
-                is_qr: qr_code || false
+                is_qr: qr_code || false,
+                txn_ref: txnRef
             }
         });
 
@@ -149,11 +145,8 @@ export const handleVNPayIPN = async (req, res) => {
     try {
         const queryParams = req.query;
         console.log('📥 VNPay IPN received:', queryParams);
-        console.log('📥 IPN - Full URL:', req.originalUrl);
 
-        // Kiểm tra chữ ký
         const result = verifyVNPayReturn(queryParams);
-        console.log('📥 IPN - Verify result:', result);
 
         if (!result.success) {
             console.error('❌ IPN verification failed:', result.message);
@@ -161,12 +154,12 @@ export const handleVNPayIPN = async (req, res) => {
         }
 
         const { vnp_TxnRef, vnp_Amount, vnp_ResponseCode, vnp_PayDate } = result.data;
-        console.log('📊 IPN - Order:', vnp_TxnRef);
-        console.log('📊 IPN - Response Code:', vnp_ResponseCode);
-        console.log('📊 IPN - Amount:', vnp_Amount);
 
-        // Tìm đơn hàng
-        const booking = await DonDatTour.findByPk(vnp_TxnRef, {
+        // ⭐ LẤY MA_DON_HANG TỪ TXN_REF (cắt bỏ phần timestamp)
+        const ma_don_hang = parseInt(vnp_TxnRef.split('_')[0]);
+        console.log('📊 Extracted ma_don_hang:', ma_don_hang);
+
+        const booking = await DonDatTour.findByPk(ma_don_hang, {
             include: [
                 {
                     model: LichKhoiHanh,
@@ -181,35 +174,27 @@ export const handleVNPayIPN = async (req, res) => {
         });
 
         if (!booking) {
-            console.error('❌ IPN: Booking not found:', vnp_TxnRef);
+            console.error('❌ IPN: Booking not found:', ma_don_hang);
             return res.status(200).json({ RspCode: '02', Message: 'Order not found' });
         }
 
-        console.log('📊 IPN - Current status:', booking.trang_thai_thanh_toan);
-        console.log('📊 IPN - Total:', booking.tong_tien);
-        console.log('📊 IPN - Deposit:', booking.tien_coc);
-
-        // Kiểm tra tránh cập nhật trùng
         if (booking.trang_thai_thanh_toan === 'Đã thanh toán') {
-            console.log('✅ IPN: Order already paid:', vnp_TxnRef);
+            console.log('✅ IPN: Order already paid:', ma_don_hang);
             return res.status(200).json({ RspCode: '00', Message: 'Confirm Success' });
         }
 
-        // Xử lý kết quả
         if (vnp_ResponseCode === '00') {
             const soTienDaThanhToan = parseInt(vnp_Amount) / 100;
             console.log('💰 IPN - Amount paid:', soTienDaThanhToan);
 
-            // Tìm hoặc tạo thanh toán
             let thanhToan = await ThanhToan.findOne({
-                where: { ma_don_hang: booking.ma_don_hang },
+                where: { ma_don_hang: ma_don_hang },
                 order: [['ngay_tao', 'DESC']]
             });
 
             if (!thanhToan) {
-                console.log('📊 IPN - Creating new payment record');
                 thanhToan = await ThanhToan.create({
-                    ma_don_hang: booking.ma_don_hang,
+                    ma_don_hang: ma_don_hang,
                     so_tien: soTienDaThanhToan,
                     phuong_thuc: 'VNPay',
                     trang_thai: 'Đã thanh toán',
@@ -222,7 +207,6 @@ export const handleVNPayIPN = async (req, res) => {
                 });
                 console.log('✅ IPN: Created payment record');
             } else {
-                console.log('📊 IPN - Updating existing payment record');
                 await thanhToan.update({
                     trang_thai: 'Đã thanh toán',
                     ngay_thanh_toan: new Date(vnp_PayDate),
@@ -235,7 +219,6 @@ export const handleVNPayIPN = async (req, res) => {
                 console.log('✅ IPN: Updated payment record');
             }
 
-            // Xác định trạng thái
             let trangThaiThanhToan = 'Đã thanh toán';
             let trangThaiDonHang = 'Đã xác nhận';
             
@@ -244,26 +227,17 @@ export const handleVNPayIPN = async (req, res) => {
                 trangThaiDonHang = 'Chờ xác nhận';
             }
 
-            console.log('📊 IPN - New payment status:', trangThaiThanhToan);
-            console.log('📊 IPN - New order status:', trangThaiDonHang);
-            console.log('📊 IPN - Remaining:', booking.tong_tien - soTienDaThanhToan);
-
-            // Cập nhật đơn hàng
             await booking.update({
                 trang_thai_thanh_toan: trangThaiThanhToan,
                 tien_con_lai: booking.tong_tien - soTienDaThanhToan,
                 trang_thai_don_hang: trangThaiDonHang
             });
 
-            console.log(`✅ IPN: Order ${vnp_TxnRef} updated successfully!`);
-            console.log(`   Payment: ${trangThaiThanhToan}`);
-            console.log(`   Order: ${trangThaiDonHang}`);
-            console.log(`   Remaining: ${booking.tong_tien - soTienDaThanhToan}`);
+            console.log(`✅ IPN: Order ${ma_don_hang} updated successfully!`);
 
-            // Gửi email xác nhận
             try {
                 await sendPaymentConfirmation(booking.nguoiDung.email, {
-                    ma_don_hang: booking.ma_don_hang,
+                    ma_don_hang: ma_don_hang,
                     ten_tour: booking.lichKhoiHanh.tour.ten_tour,
                     so_tien: soTienDaThanhToan,
                     phuong_thuc: 'VNPay',
@@ -280,10 +254,10 @@ export const handleVNPayIPN = async (req, res) => {
             });
 
         } else {
-            console.log(`❌ IPN: Payment failed for order ${vnp_TxnRef}, code: ${vnp_ResponseCode}`);
+            console.log(`❌ IPN: Payment failed for order ${ma_don_hang}, code: ${vnp_ResponseCode}`);
             
             let thanhToan = await ThanhToan.findOne({
-                where: { ma_don_hang: booking.ma_don_hang },
+                where: { ma_don_hang: ma_don_hang },
                 order: [['ngay_tao', 'DESC']]
             });
 
@@ -314,125 +288,144 @@ export const handleVNPayIPN = async (req, res) => {
 };
 
 // ============================================
-// XỬ LÝ RETURN URL - FALLBACK
+// ⭐ XỬ LÝ RETURN URL - QUAN TRỌNG
 // ============================================
 export const handleVNPayReturn = async (req, res) => {
     try {
         const queryParams = req.query;
-        console.log('📥 VNPay Return:', queryParams);
+        console.log('========================================');
+        console.log('📥 VNPAY RETURN RECEIVED!');
+        console.log('📥 Full URL:', req.originalUrl);
+        console.log('📥 Query:', JSON.stringify(queryParams, null, 2));
+        console.log('========================================');
 
+        const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+
+        const responseCode = queryParams['vnp_ResponseCode'];
+        const vnp_TxnRef = queryParams['vnp_TxnRef'];
+        const vnp_Amount = queryParams['vnp_Amount'];
+        const vnp_PayDate = queryParams['vnp_PayDate'];
+
+        console.log('📊 vnp_ResponseCode:', responseCode);
+        console.log('📊 vnp_TxnRef:', vnp_TxnRef);
+        console.log('📊 vnp_Amount:', vnp_Amount);
+
+        // ⭐ Xác thực chữ ký
         const result = verifyVNPayReturn(queryParams);
+        console.log('📊 Verify result success:', result.success);
 
         if (!result.success) {
-            console.error('❌ Return verification failed:', result.message);
-            return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/payment-result?status=failed&message=${encodeURIComponent(result.message)}`);
+            console.error('❌ Verification failed:', result.message);
+            const encodedMessage = encodeURIComponent(result.message);
+            return res.redirect(`${CLIENT_URL}/payment-result?status=failed&code=07&message=${encodedMessage}`);
         }
 
-        const { vnp_TxnRef, vnp_Amount, vnp_ResponseCode, vnp_PayDate } = result.data;
+        // ⭐ XỬ LÝ THEO RESPONSE CODE
+        if (responseCode === '00') {
+            console.log('✅✅✅ PAYMENT SUCCESS for order:', vnp_TxnRef);
+            
+            // ⭐ LẤY MA_DON_HANG TỪ TXN_REF
+            const ma_don_hang = parseInt(vnp_TxnRef.split('_')[0]);
+            console.log('📊 Extracted ma_don_hang:', ma_don_hang);
+            
+            // ⭐ CẬP NHẬT ĐƠN HÀNG
+            const booking = await DonDatTour.findByPk(ma_don_hang);
+            
+            if (booking) {
+                const soTien = parseInt(vnp_Amount) / 100;
+                console.log('💰 Order total:', booking.tong_tien);
+                console.log('💰 Paid amount:', soTien);
+                
+                const trangThaiThanhToan = soTien >= booking.tong_tien ? 'Đã thanh toán' : 'Đã đặt cọc';
+                
+                await booking.update({
+                    trang_thai_thanh_toan: trangThaiThanhToan,
+                    trang_thai_don_hang: 'Đã xác nhận',
+                    tien_con_lai: booking.tong_tien - soTien
+                });
+                
+                console.log(`✅ Updated order ${ma_don_hang} to ${trangThaiThanhToan}`);
+                
+                // Tạo hoặc cập nhật payment record
+                let thanhToan = await ThanhToan.findOne({
+                    where: { ma_don_hang: ma_don_hang },
+                    order: [['ngay_tao', 'DESC']]
+                });
 
-        // Tìm đơn hàng
-        const booking = await DonDatTour.findByPk(vnp_TxnRef, {
-            include: [
-                {
-                    model: LichKhoiHanh,
-                    as: 'lichKhoiHanh',
-                    include: [{ model: Tour, as: 'tour' }]
-                },
-                {
-                    model: NguoiDung,
-                    as: 'nguoiDung'
+                if (!thanhToan) {
+                    await ThanhToan.create({
+                        ma_don_hang: ma_don_hang,
+                        so_tien: soTien,
+                        phuong_thuc: 'VNPay',
+                        trang_thai: 'Đã thanh toán',
+                        ma_giao_dich: vnp_TxnRef,
+                        ngay_thanh_toan: new Date(vnp_PayDate),
+                        thong_tin: {
+                            return_response: queryParams,
+                            return_processed_at: new Date().toISOString()
+                        }
+                    });
+                    console.log('✅ Created payment record');
+                } else {
+                    await thanhToan.update({
+                        trang_thai: 'Đã thanh toán',
+                        ngay_thanh_toan: new Date(vnp_PayDate),
+                        thong_tin: {
+                            ...thanhToan.thong_tin,
+                            return_response: queryParams,
+                            return_processed_at: new Date().toISOString()
+                        }
+                    });
+                    console.log('✅ Updated payment record');
                 }
-            ]
-        });
-
-        if (!booking) {
-            return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/payment-result?status=failed&message=Không tìm thấy đơn hàng`);
-        }
-
-        console.log('📊 Return - Current status:', booking.trang_thai_thanh_toan);
-
-        // Nếu IPN chưa xử lý, xử lý ở đây (FALLBACK)
-        if (booking.trang_thai_thanh_toan === 'Chưa thanh toán' && vnp_ResponseCode === '00') {
-            console.log('🔄 Return URL processing as fallback for order:', vnp_TxnRef);
-            
-            const soTienDaThanhToan = parseInt(vnp_Amount) / 100;
-            console.log('💰 Return - Amount paid:', soTienDaThanhToan);
-
-            // Tạo thanh toán
-            let thanhToan = await ThanhToan.findOne({
-                where: { ma_don_hang: booking.ma_don_hang },
-                order: [['ngay_tao', 'DESC']]
-            });
-
-            if (!thanhToan) {
-                thanhToan = await ThanhToan.create({
-                    ma_don_hang: booking.ma_don_hang,
-                    so_tien: soTienDaThanhToan,
-                    phuong_thuc: 'VNPay',
-                    trang_thai: 'Đã thanh toán',
-                    ma_giao_dich: vnp_TxnRef,
-                    ngay_thanh_toan: new Date(vnp_PayDate),
-                    thong_tin: {
-                        return_response: queryParams,
-                        return_processed_at: new Date().toISOString()
-                    }
-                });
-                console.log('✅ Return: Created payment record');
             } else {
-                await thanhToan.update({
-                    trang_thai: 'Đã thanh toán',
-                    ngay_thanh_toan: new Date(vnp_PayDate),
-                    thong_tin: {
-                        ...thanhToan.thong_tin,
-                        return_response: queryParams,
-                        return_processed_at: new Date().toISOString()
-                    }
-                });
-                console.log('✅ Return: Updated payment record');
+                console.log('⚠️ Booking not found:', ma_don_hang);
             }
-
-            // Xác định trạng thái
-            let trangThaiThanhToan = 'Đã thanh toán';
-            let trangThaiDonHang = 'Đã xác nhận';
             
-            if (soTienDaThanhToan < booking.tong_tien) {
-                trangThaiThanhToan = 'Đã đặt cọc';
-                trangThaiDonHang = 'Chờ xác nhận';
-            }
-
-            await booking.update({
-                trang_thai_thanh_toan: trangThaiThanhToan,
-                tien_con_lai: booking.tong_tien - soTienDaThanhToan,
-                trang_thai_don_hang: trangThaiDonHang
-            });
-
-            console.log(`✅ Return: Order ${vnp_TxnRef} updated to ${trangThaiThanhToan}`);
-
-            // Gửi email
-            try {
-                await sendPaymentConfirmation(booking.nguoiDung.email, {
-                    ma_don_hang: booking.ma_don_hang,
-                    ten_tour: booking.lichKhoiHanh.tour.ten_tour,
-                    so_tien: soTienDaThanhToan,
-                    phuong_thuc: 'VNPay',
-                    trang_thai: 'Thành công'
-                });
-                console.log('✅ Return: Email sent');
-            } catch (emailError) {
-                console.log('⚠️ Return: Email không gửi được');
-            }
-        }
-
-        // Chuyển hướng về trang kết quả
-        if (vnp_ResponseCode === '00') {
-            return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/payment-result?status=success&order=${booking.ma_don_hang}`);
+            // ⭐ REDIRECT VỀ FRONTEND
+            console.log(`🔗 Redirecting to: ${CLIENT_URL}/payment-result?status=success&order=${ma_don_hang}`);
+            return res.redirect(`${CLIENT_URL}/payment-result?status=success&order=${ma_don_hang}`);
+            
         } else {
-            return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/payment-result?status=failed&message=Thanh toán thất bại`);
+            // ⭐ XỬ LÝ THẤT BẠI
+            const errorMessages = {
+                '02': 'Mã đơn hàng không hợp lệ',
+                '03': 'Số tiền không hợp lệ',
+                '04': 'Thông tin thanh toán không hợp lệ',
+                '05': 'Giao dịch thất bại',
+                '06': 'Lỗi hệ thống VNPay',
+                '07': 'Lỗi chữ ký - Sai thông tin cấu hình',
+                '08': 'Lỗi dữ liệu gửi lên VNPay',
+                '09': 'Lỗi cấu hình VNPay',
+                '10': 'Lỗi kết nối VNPay',
+                '11': 'Giao dịch đã tồn tại',
+                '12': 'Thẻ không hợp lệ',
+                '13': 'Số dư không đủ - Vui lòng kiểm tra lại',
+                '14': 'Thẻ đã hết hạn',
+                '15': 'Thẻ bị khóa',
+                '16': 'Ngân hàng từ chối giao dịch',
+                '17': 'Không xác thực được thông tin',
+                '18': 'Mã OTP không hợp lệ',
+                '19': 'OTP đã hết thời gian hiệu lực',
+                '20': 'Giao dịch bị hủy bởi khách hàng',
+                '21': 'Giao dịch đã được thanh toán',
+                '22': 'Giao dịch không thành công',
+                '23': 'Giao dịch đang chờ xử lý',
+                '24': 'Giao dịch đã được hoàn tiền'
+            };
+            
+            const errorMsg = errorMessages[responseCode] || `Lỗi không xác định (mã: ${responseCode})`;
+            console.log(`❌ Payment FAILED - ${errorMsg}`);
+            
+            const encodedMessage = encodeURIComponent(errorMsg);
+            return res.redirect(`${CLIENT_URL}/payment-result?status=failed&code=${responseCode}&message=${encodedMessage}`);
         }
 
     } catch (error) {
         console.error('❌ VNPay return error:', error);
-        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/payment-result?status=failed&message=Lỗi xử lý thanh toán`);
+        const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+        const encodedMessage = encodeURIComponent('Lỗi xử lý thanh toán: ' + error.message);
+        return res.redirect(`${CLIENT_URL}/payment-result?status=failed&code=99&message=${encodedMessage}`);
     }
 };
 
@@ -467,7 +460,6 @@ export const getPaymentStatus = async (req, res) => {
             });
         }
 
-        // Kiểm tra quyền
         if (req.user.ma_nguoi_dung !== booking.ma_nguoi_dung) {
             const user = await NguoiDung.findByPk(req.user.ma_nguoi_dung, {
                 include: [{ model: VaiTro, as: 'vaiTro' }]
@@ -480,13 +472,11 @@ export const getPaymentStatus = async (req, res) => {
             }
         }
 
-        // Lấy thanh toán mới nhất
         const thanhToan = await ThanhToan.findOne({
             where: { ma_don_hang },
             order: [['ngay_tao', 'DESC']]
         });
 
-        // Trả về đầy đủ thông tin
         res.json({
             success: true,
             data: {
