@@ -19,7 +19,7 @@ const DonDatTour = sequelize.define('DonDatTour', {
     type: DataTypes.INTEGER,
     allowNull: true
   },
-  ma_nhan_vien_phu_trach: {  // ⭐ THÊM MỚI
+  ma_nhan_vien_phu_trach: {
     type: DataTypes.INTEGER,
     allowNull: true
   },
@@ -87,7 +87,27 @@ const DonDatTour = sequelize.define('DonDatTour', {
   updatedAt: 'ngay_cap_nhat',
   paranoid: true,
   deletedAt: 'deleted_at',
-  indexes: []
+  // ⭐ QUAN TRỌNG: XÓA BỎ INDEXES HOẶC GIỚI HẠN
+  indexes: [
+    // Chỉ giữ lại các index cần thiết
+    {
+      name: 'idx_don_dat_tour_ma_nguoi_dung',
+      fields: ['ma_nguoi_dung']
+    },
+    {
+      name: 'idx_don_dat_tour_ma_lich_khoi_hanh',
+      fields: ['ma_lich_khoi_hanh']
+    },
+    {
+      name: 'idx_don_dat_tour_trang_thai_don_hang',
+      fields: ['trang_thai_don_hang']
+    },
+    {
+      name: 'idx_don_dat_tour_ngay_dat',
+      fields: ['ngay_dat']
+    }
+    // ⭐ XÓA BỎ CÁC INDEX KHÔNG CẦN THIẾT
+  ]
 });
 
 export default DonDatTour;

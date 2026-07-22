@@ -1,23 +1,30 @@
 import express from 'express';
 import {
-  createVNPayPayment,
-  handleVNPayReturn,
-  getPaymentStatus
+    createVNPayPayment,
+    handleVNPayReturn,
+    handleVNPayIPN,
+    getPaymentStatus
 } from '../controllers/paymentController.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// ⭐ VNPay return URL (public - KHÔNG CẦN AUTH)
+// ⭐ LOG TẤT CẢ REQUEST
+router.use((req, res, next) => {
+    console.log('🔗 Payment Route:', req.method, req.path);
+    next();
+});
+
+// ⭐ IPN - PUBLIC (KHÔNG CẦN AUTH) - PHẢI ĐẶT TRƯỚC /:id
+router.get('/vnpay-ipn', handleVNPayIPN);
+
+// ⭐ RETURN URL - PUBLIC
 router.get('/vnpay-return', handleVNPayReturn);
 
-// ⭐ Protected routes
+// ⭐ PROTECTED ROUTES
 router.use(protect);
 
-// Tạo thanh toán VNPay
 router.post('/vnpay', createVNPayPayment);
-
-// ⭐ Lấy trạng thái thanh toán - SỬA LẠI ROUTE
 router.get('/status/:ma_don_hang', getPaymentStatus);
 
 export default router;

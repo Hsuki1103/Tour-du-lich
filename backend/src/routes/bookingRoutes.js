@@ -1,14 +1,14 @@
 import express from 'express';
 import {
-  createBooking,
-  getMyBookings,
-  getBookingDetail,
-  cancelBooking,
-  downloadVoucher,
-  getAllBookings,
-  confirmBooking,
-  updateBooking,
-  updateBookingByCustomer,  // ⭐ THÊM IMPORT
+    createBooking,
+    getMyBookings,
+    getBookingDetail,
+    cancelBooking,
+    downloadVoucher,
+    getAllBookings,
+    confirmBooking,
+    updateBooking,
+    updateBookingByCustomer,
 } from '../controllers/bookingController.js';
 import { protect } from '../middleware/auth.js';
 import { checkRole, ROLES } from '../middleware/role.js';
@@ -25,7 +25,7 @@ router.get('/my', getMyBookings);
 router.get('/my/:id', validate(commonValidations.idParam), getBookingDetail);
 router.put('/my/:id/cancel', validate(commonValidations.idParam), cancelBooking);
 router.get('/my/:id/voucher', validate(commonValidations.idParam), downloadVoucher);
-router.put('/my/:id/update', validate(commonValidations.idParam), updateBookingByCustomer); // ⭐ THÊM ROUTE
+router.put('/my/:id/update', validate(commonValidations.idParam), updateBookingByCustomer);
 
 // Admin & Employee routes
 router.use(checkRole(ROLES.ADMIN, ROLES.NHAN_VIEN));
