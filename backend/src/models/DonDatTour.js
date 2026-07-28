@@ -79,6 +79,20 @@ const DonDatTour = sequelize.define('DonDatTour', {
   ngay_cap_nhat: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
+  },
+  // ⭐ THÊM CÁC TRƯỜNG MỚI CHO HOÀN TIỀN
+  hoan_tien: {
+    type: DataTypes.ENUM('Chưa yêu cầu', 'Đã yêu cầu', 'Đã hoàn'),
+    defaultValue: 'Chưa yêu cầu'
+  },
+  thong_tin_hoan_tien: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    comment: 'Lưu thông tin tài khoản ngân hàng nhận hoàn tiền'
+  },
+  so_tien_hoan: {
+    type: DataTypes.DECIMAL(15, 2),
+    defaultValue: 0
   }
 }, {
   tableName: 'don_dat_tour',
@@ -87,9 +101,7 @@ const DonDatTour = sequelize.define('DonDatTour', {
   updatedAt: 'ngay_cap_nhat',
   paranoid: true,
   deletedAt: 'deleted_at',
-  // ⭐ QUAN TRỌNG: XÓA BỎ INDEXES HOẶC GIỚI HẠN
   indexes: [
-    // Chỉ giữ lại các index cần thiết
     {
       name: 'idx_don_dat_tour_ma_nguoi_dung',
       fields: ['ma_nguoi_dung']
@@ -106,7 +118,6 @@ const DonDatTour = sequelize.define('DonDatTour', {
       name: 'idx_don_dat_tour_ngay_dat',
       fields: ['ngay_dat']
     }
-    // ⭐ XÓA BỎ CÁC INDEX KHÔNG CẦN THIẾT
   ]
 });
 

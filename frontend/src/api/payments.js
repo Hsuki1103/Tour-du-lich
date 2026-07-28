@@ -1,3 +1,4 @@
+// frontend/src/api/payments.js
 import axios from './axios';
 
 export const paymentsAPI = {

@@ -1,3 +1,4 @@
+// frontend/src/components/common/Header.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -32,13 +33,14 @@ const Header = () => {
 
   // ⭐ HÀM XỬ LÝ CLICK VÀO LOGO - VỀ TRANG CHỦ
   const handleLogoClick = () => {
-    navigate('/'); // Chuyển về trang chủ
+    navigate('/');
   };
 
   const getNavLinks = () => {
     const links = [
       { to: '/', label: 'Trang chủ' },
       { to: '/tours', label: 'Tour du lịch' },
+      { to: '/discounts', label: 'Mã giảm giá' }, // ⭐ THÊM DÒNG NÀY
     ];
 
     if (isAuthenticated && isCustomer) {

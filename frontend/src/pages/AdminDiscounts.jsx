@@ -1,8 +1,10 @@
+// frontend/src/pages/AdminDiscounts.jsx
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { discountsAPI } from '../api/discounts';
 import AdminLayout from '../components/admin/AdminLayout';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import SendDiscountModal from '../components/admin/SendDiscountModal';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import {
   PlusIcon,
@@ -10,7 +12,10 @@ import {
   TrashIcon,
   XMarkIcon,
   GiftIcon,
-  CheckIcon
+  CheckIcon,
+  EnvelopeIcon,
+  GlobeAltIcon,
+  LockClosedIcon
 } from '@heroicons/react/24/outline';
 
 const AdminDiscounts = () => {
@@ -18,7 +23,9 @@ const AdminDiscounts = () => {
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
   const [editingDiscount, setEditingDiscount] = useState(null);
+  const [selectedDiscountForSend, setSelectedDiscountForSend] = useState(null);
   const [formData, setFormData] = useState({
     ma_code: '',
     ten_chuong_trinh: '',
@@ -29,10 +36,11 @@ const AdminDiscounts = () => {
     ngay_bat_dau: '',
     ngay_ket_thuc: '',
     yeu_cau_toi_thieu: 1,
+    loai_ma: 'public', // ⭐ THÊM TRƯỜNG NÀY
   });
   const [errors, setErrors] = useState({});
 
-  const { data, isLoading, error } = useQuery(
+  const { data, isLoading, error, refetch } = useQuery(
     ['admin-discounts', page, searchTerm],
     () => discountsAPI.getDiscounts({ page, limit: 20, search: searchTerm }),
     { keepPreviousData: true }
@@ -42,7 +50,6 @@ const AdminDiscounts = () => {
   const total = data?.data?.data?.total || 0;
   const totalPages = data?.data?.data?.totalPages || 1;
 
-  // Create/Update discount mutation
   const discountMutation = useMutation(
     (data) => {
       if (editingDiscount) {
@@ -66,6 +73,7 @@ const AdminDiscounts = () => {
           ngay_bat_dau: '',
           ngay_ket_thuc: '',
           yeu_cau_toi_thieu: 1,
+          loai_ma: 'public',
         });
         alert(editingDiscount ? 'Cập nhật mã giảm giá thành công!' : 'Thêm mã giảm giá thành công!');
       },
@@ -75,7 +83,6 @@ const AdminDiscounts = () => {
     }
   );
 
-  // Delete discount mutation
   const deleteMutation = useMutation(
     (id) => discountsAPI.deleteDiscount(id),
     {
@@ -101,6 +108,7 @@ const AdminDiscounts = () => {
       ngay_bat_dau: discount.ngay_bat_dau || '',
       ngay_ket_thuc: discount.ngay_ket_thuc || '',
       yeu_cau_toi_thieu: discount.yeu_cau_toi_thieu || 1,
+      loai_ma: discount.loai_ma || 'public', // ⭐ THÊM
     });
     setShowForm(true);
   };
@@ -111,10 +119,19 @@ const AdminDiscounts = () => {
     }
   };
 
+  const handleSendDiscount = (discount) => {
+    // ⭐ CHỈ CHO PHÉP GỬI KHI LÀ MÃ PRIVATE
+    if (discount.loai_ma === 'public') {
+      alert('ℹ️ Mã công khai không cần gửi riêng. Ai cũng có thể sử dụng.');
+      return;
+    }
+    setSelectedDiscountForSend(discount);
+    setShowSendModal(true);
+  };
+
   const handleFormSubmit = (e) => {
     e.preventDefault();
     
-    // Validation
     const newErrors = {};
     if (!formData.ma_code) newErrors.ma_code = 'Mã code không được để trống';
     if (!formData.ten_chuong_trinh) newErrors.ten_chuong_trinh = 'Tên chương trình không được để trống';
@@ -143,6 +160,7 @@ const AdminDiscounts = () => {
       muc_giam: parseFloat(formData.muc_giam),
       so_luong: parseInt(formData.so_luong),
       yeu_cau_toi_thieu: parseInt(formData.yeu_cau_toi_thieu),
+      loai_ma: formData.loai_ma, // ⭐ THÊM
     };
 
     discountMutation.mutate(submitData);
@@ -161,8 +179,23 @@ const AdminDiscounts = () => {
       ngay_bat_dau: '',
       ngay_ket_thuc: '',
       yeu_cau_toi_thieu: 1,
+      loai_ma: 'public',
     });
     setErrors({});
+  };
+
+  // ⭐ HÀM HIỂN THỊ BADGE LOẠI MÃ
+  const getLoaiMaBadge = (loai_ma) => {
+    if (loai_ma === 'private') {
+      return <span className="badge badge-primary text-xs flex items-center gap-1">
+        <LockClosedIcon className="w-3 h-3" />
+        Riêng tư
+      </span>;
+    }
+    return <span className="badge badge-info text-xs flex items-center gap-1">
+      <GlobeAltIcon className="w-3 h-3" />
+      Công khai
+    </span>;
   };
 
   const getStatusBadge = (discount) => {
@@ -226,6 +259,7 @@ const AdminDiscounts = () => {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Chương trình</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại mã</th> {/* ⭐ THÊM CỘT */}
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Giảm</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số lượng</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thời gian</th>
@@ -240,6 +274,9 @@ const AdminDiscounts = () => {
                           <span className="font-mono font-bold text-primary-500">{discount.ma_code}</span>
                         </td>
                         <td className="px-6 py-4">{discount.ten_chuong_trinh}</td>
+                        <td className="px-6 py-4">
+                          {getLoaiMaBadge(discount.loai_ma)} {/* ⭐ HIỂN THỊ LOẠI MÃ */}
+                        </td>
                         <td className="px-6 py-4">
                           {discount.loai_giam === 'Phần trăm' 
                             ? `${discount.muc_giam}%` 
@@ -262,6 +299,25 @@ const AdminDiscounts = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
+                            {/* ⭐ NÚT GỬI - CHỈ HIỂN THỊ KHI LÀ MÃ PRIVATE */}
+                            {discount.loai_ma === 'private' && (
+                              <button
+                                onClick={() => handleSendDiscount(discount)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Gửi mã giảm giá cho khách hàng"
+                              >
+                                <EnvelopeIcon className="w-5 h-5" />
+                              </button>
+                            )}
+                            {discount.loai_ma === 'public' && (
+                              <button
+                                className="p-2 text-gray-400 cursor-not-allowed rounded-lg"
+                                title="Mã công khai không cần gửi riêng"
+                                disabled
+                              >
+                                <EnvelopeIcon className="w-5 h-5" />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleEdit(discount)}
                               className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
@@ -368,6 +424,40 @@ const AdminDiscounts = () => {
                     {errors.ten_chuong_trinh && <p className="text-red-500 text-sm mt-1">{errors.ten_chuong_trinh}</p>}
                   </div>
 
+                  {/* ⭐ TRƯỜNG LOẠI MÃ */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Loại mã giảm giá <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.loai_ma}
+                      onChange={(e) => setFormData({ ...formData, loai_ma: e.target.value })}
+                      className="input-field"
+                    >
+                      <option value="public">🌐 Công khai (Ai cũng dùng được)</option>
+                      <option value="private">🔒 Riêng tư (Chỉ khách được gửi mới dùng được)</option>
+                    </select>
+                    <div className="mt-2 p-3 rounded-lg text-sm" style={{
+                      backgroundColor: formData.loai_ma === 'public' ? '#f0fdf4' : '#fef3c7',
+                      color: formData.loai_ma === 'public' ? '#15803d' : '#92400e'
+                    }}>
+                      {formData.loai_ma === 'public' ? (
+                        <>
+                          <p className="font-medium">✅ Mã công khai</p>
+                          <p className="text-xs opacity-80">Mã sẽ hiển thị trên trang "Tất cả mã" và AI CŨNG có thể sử dụng.</p>
+                          <p className="text-xs opacity-80">Không cần gửi riêng cho khách hàng.</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="font-medium">🔒 Mã riêng tư</p>
+                          <p className="text-xs opacity-80">Mã sẽ KHÔNG hiển thị công khai.</p>
+                          <p className="text-xs opacity-80">CHỈ khách hàng được Admin gửi mới thấy và sử dụng được.</p>
+                          <p className="text-xs opacity-80">Bạn cần sử dụng chức năng "Gửi mã giảm giá" để gửi cho khách hàng.</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Loại giảm</label>
                     <select
@@ -468,6 +558,20 @@ const AdminDiscounts = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Send Discount Modal */}
+        {showSendModal && selectedDiscountForSend && (
+          <SendDiscountModal
+            discount={selectedDiscountForSend}
+            onClose={() => {
+              setShowSendModal(false);
+              setSelectedDiscountForSend(null);
+            }}
+            onSuccess={() => {
+              refetch();
+            }}
+          />
         )}
       </div>
     </AdminLayout>

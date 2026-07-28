@@ -1,8 +1,12 @@
-import { NguoiDung, VaiTro, NhanVien, Admin, DonDatTour } from '../models/index.js';
+// backend/src/controllers/adminController.js
+import { NguoiDung, VaiTro, NhanVien, Admin, DonDatTour, MaGiamGia } from '../models/index.js';
 import { Op } from 'sequelize';
 import bcrypt from 'bcryptjs';
+import { sendDiscountEmail } from '../utils/emailService.js';
 
-// Lấy danh sách người dùng
+// ============================================
+// LẤY DANH SÁCH NGƯỜI DÙNG
+// ============================================
 export const getAllUsers = async (req, res) => {
   try {
     const { page = 1, limit = 20, search, role } = req.query;
@@ -60,7 +64,9 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-// Lấy chi tiết người dùng
+// ============================================
+// LẤY CHI TIẾT NGƯỜI DÙNG
+// ============================================
 export const getUserDetail = async (req, res) => {
   try {
     const { id } = req.params;
@@ -104,7 +110,9 @@ export const getUserDetail = async (req, res) => {
   }
 };
 
-// Tạo người dùng (Admin)
+// ============================================
+// TẠO NGƯỜI DÙNG (ADMIN)
+// ============================================
 export const createUser = async (req, res) => {
   try {
     const { ho_ten, email, so_dien_thoai, mat_khau, vai_tro } = req.body;
@@ -189,7 +197,9 @@ export const createUser = async (req, res) => {
   }
 };
 
-// Cập nhật người dùng (Admin)
+// ============================================
+// CẬP NHẬT NGƯỜI DÙNG (ADMIN)
+// ============================================
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -286,7 +296,9 @@ export const updateUser = async (req, res) => {
   }
 };
 
-// Xóa người dùng (Admin)
+// ============================================
+// XÓA NGƯỜI DÙNG (ADMIN)
+// ============================================
 export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -354,7 +366,9 @@ export const deleteUser = async (req, res) => {
   }
 };
 
-// Khóa/Mở khóa tài khoản
+// ============================================
+// KHÓA/MỞ KHÓA TÀI KHOẢN
+// ============================================
 export const toggleUserStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -389,7 +403,9 @@ export const toggleUserStatus = async (req, res) => {
   }
 };
 
-// Phân quyền người dùng
+// ============================================
+// PHÂN QUYỀN NGƯỜI DÙNG
+// ============================================
 export const assignRole = async (req, res) => {
   try {
     const { id } = req.params;
@@ -459,10 +475,11 @@ export const assignRole = async (req, res) => {
   }
 };
 
-// Lấy cấu hình hệ thống
+// ============================================
+// LẤY CẤU HÌNH HỆ THỐNG
+// ============================================
 export const getSystemConfig = async (req, res) => {
   try {
-    // Có thể lấy từ bảng config hoặc từ env
     const config = {
       payment_gateway: 'VNPay',
       currency: 'VND',
@@ -489,13 +506,13 @@ export const getSystemConfig = async (req, res) => {
   }
 };
 
-// Cập nhật cấu hình hệ thống
+// ============================================
+// CẬP NHẬT CẤU HÌNH HỆ THỐNG
+// ============================================
 export const updateSystemConfig = async (req, res) => {
   try {
     const { payment_gateway, cancellation_policy, deposit_percentage } = req.body;
 
-    // Ở đây có thể lưu vào database hoặc file
-    // Tạm thời chỉ trả về thành công
     res.json({
       success: true,
       message: 'Cập nhật cấu hình thành công',
@@ -514,6 +531,236 @@ export const updateSystemConfig = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Lỗi cập nhật cấu hình: ' + error.message
+    });
+  }
+};
+
+// ============================================
+// ⭐ LẤY DANH SÁCH KHÁCH HÀNG THEO CHI TIÊU
+// ============================================
+export const getCustomersBySpending = async (req, res) => {
+  try {
+    const { min_spent = 0, max_spent = null, limit = 100 } = req.query;
+
+    // Lấy tất cả khách hàng
+    const customerRole = await VaiTro.findOne({
+      where: { ten_vai_tro: 'Khách hàng' }
+    });
+
+    if (!customerRole) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy vai trò khách hàng'
+      });
+    }
+
+    const users = await NguoiDung.findAll({
+      where: {
+        ma_vai_tro: customerRole.ma_vai_tro,
+        trang_thai: 'Đang hoạt động'
+      },
+      attributes: ['ma_nguoi_dung', 'ho_ten', 'email', 'so_dien_thoai']
+    });
+
+    // Tính tổng chi tiêu cho từng khách hàng
+    const customersWithSpending = [];
+    for (const user of users) {
+      const totalSpent = await DonDatTour.sum('tong_tien', {
+        where: {
+          ma_nguoi_dung: user.ma_nguoi_dung,
+          trang_thai_don_hang: {
+            [Op.notIn]: ['Đã hủy']
+          }
+        }
+      });
+
+      const spent = totalSpent || 0;
+      
+      // Lọc theo khoảng chi tiêu
+      let pass = true;
+      if (min_spent && spent < parseFloat(min_spent)) pass = false;
+      if (max_spent && spent > parseFloat(max_spent)) pass = false;
+      
+      if (pass) {
+        customersWithSpending.push({
+          ma_nguoi_dung: user.ma_nguoi_dung,
+          ho_ten: user.ho_ten,
+          email: user.email,
+          so_dien_thoai: user.so_dien_thoai,
+          tong_chi_tieu: spent
+        });
+      }
+    }
+
+    // Sắp xếp theo chi tiêu giảm dần
+    customersWithSpending.sort((a, b) => b.tong_chi_tieu - a.tong_chi_tieu);
+
+    // Giới hạn số lượng
+    const result = customersWithSpending.slice(0, parseInt(limit));
+
+    res.json({
+      success: true,
+      data: {
+        customers: result,
+        total: result.length,
+        min_spent: min_spent || 0,
+        max_spent: max_spent || 'Không giới hạn'
+      }
+    });
+  } catch (error) {
+    console.error('Get customers by spending error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi lấy danh sách khách hàng: ' + error.message
+    });
+  }
+};
+
+// ============================================
+// ⭐ GỬI MÃ GIẢM GIÁ CHO KHÁCH HÀNG (CÓ LƯU VÀO BẢNG TRUNG GIAN)
+// ============================================
+export const sendDiscountToCustomers = async (req, res) => {
+  try {
+    const { 
+      ma_giam_gia, 
+      customer_ids, 
+      send_to_all = false,
+      min_spent = 0,
+      max_spent = null
+    } = req.body;
+
+    console.log('📤 Sending discount to customers:', { ma_giam_gia, customer_ids, send_to_all, min_spent, max_spent });
+
+    // Kiểm tra mã giảm giá tồn tại
+    const discount = await MaGiamGia.findByPk(ma_giam_gia);
+    if (!discount) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy mã giảm giá'
+      });
+    }
+
+    let customers = [];
+
+    if (send_to_all) {
+      // Gửi cho tất cả khách hàng đáp ứng điều kiện chi tiêu
+      const customerRole = await VaiTro.findOne({
+        where: { ten_vai_tro: 'Khách hàng' }
+      });
+
+      if (!customerRole) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy vai trò khách hàng'
+        });
+      }
+
+      const allCustomers = await NguoiDung.findAll({
+        where: {
+          ma_vai_tro: customerRole.ma_vai_tro,
+          trang_thai: 'Đang hoạt động'
+        },
+        attributes: ['ma_nguoi_dung', 'ho_ten', 'email', 'so_dien_thoai']
+      });
+
+      // Lọc theo chi tiêu
+      for (const user of allCustomers) {
+        const totalSpent = await DonDatTour.sum('tong_tien', {
+          where: {
+            ma_nguoi_dung: user.ma_nguoi_dung,
+            trang_thai_don_hang: {
+              [Op.notIn]: ['Đã hủy']
+            }
+          }
+        });
+
+        const spent = totalSpent || 0;
+        let pass = true;
+        if (min_spent && spent < parseFloat(min_spent)) pass = false;
+        if (max_spent && spent > parseFloat(max_spent)) pass = false;
+        
+        if (pass) {
+          customers.push(user);
+        }
+      }
+    } else if (customer_ids && customer_ids.length > 0) {
+      // Gửi cho danh sách khách hàng cụ thể
+      customers = await NguoiDung.findAll({
+        where: {
+          ma_nguoi_dung: customer_ids,
+          trang_thai: 'Đang hoạt động'
+        },
+        attributes: ['ma_nguoi_dung', 'ho_ten', 'email', 'so_dien_thoai']
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng chọn khách hàng hoặc chọn gửi cho tất cả'
+      });
+    }
+
+    if (customers.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy khách hàng nào đáp ứng điều kiện'
+      });
+    }
+
+    // ⭐ LƯU MÃ GIẢM GIÁ VÀO BẢNG TRUNG GIAN CHO TỪNG KHÁCH HÀNG
+    const KhachHangMaGiamGia = sequelize.models.KhachHangMaGiamGia;
+    let savedCount = 0;
+
+    for (const customer of customers) {
+      // ⭐ KIỂM TRA XEM ĐÃ TỒN TẠI CHƯA (TRÁNH TRÙNG)
+      const existing = await KhachHangMaGiamGia.findOne({
+        where: {
+          ma_nguoi_dung: customer.ma_nguoi_dung,
+          ma_giam_gia: ma_giam_gia,
+          da_su_dung: false
+        }
+      });
+
+      if (!existing) {
+        await KhachHangMaGiamGia.create({
+          ma_nguoi_dung: customer.ma_nguoi_dung,
+          ma_giam_gia: ma_giam_gia,
+          da_su_dung: false,
+          ngay_nhan: new Date()
+        });
+        savedCount++;
+      }
+
+      // Gửi email
+      try {
+        await sendDiscountEmail(customer.email, {
+          ho_ten: customer.ho_ten,
+          ma_code: discount.ma_code,
+          ten_chuong_trinh: discount.ten_chuong_trinh,
+          loai_giam: discount.loai_giam,
+          muc_giam: discount.muc_giam,
+          giam_toi_da: discount.giam_toi_da,
+          ngay_ket_thuc: discount.ngay_ket_thuc,
+          yeu_cau_toi_thieu: discount.yeu_cau_toi_thieu
+        });
+      } catch (error) {
+        console.error(`❌ Failed to send to ${customer.email}:`, error.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Đã gửi mã giảm giá cho ${customers.length} khách hàng (lưu thành công ${savedCount} bản ghi)`,
+      data: {
+        total_customers: customers.length,
+        saved_count: savedCount,
+        discount_code: discount.ma_code
+      }
+    });
+  } catch (error) {
+    console.error('Send discount to customers error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi gửi mã giảm giá: ' + error.message
     });
   }
 };

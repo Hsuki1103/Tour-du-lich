@@ -1,3 +1,4 @@
+// backend/src/models/MaGiamGia.js
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 
@@ -68,6 +69,11 @@ const MaGiamGia = sequelize.define('MaGiamGia', {
     type: DataTypes.INTEGER,
     defaultValue: 1,
     comment: 'Minimum number of guests required'
+  },
+  loai_ma: { // ⭐ THÊM TRƯỜNG NÀY
+    type: DataTypes.ENUM('public', 'private'),
+    defaultValue: 'public',
+    allowNull: false
   },
   trang_thai: {
     type: DataTypes.ENUM('Đang hoạt động', 'Đã hết', 'Hết hạn'),

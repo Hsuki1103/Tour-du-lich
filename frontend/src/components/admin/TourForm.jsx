@@ -15,6 +15,7 @@ const TourForm = ({ tour = null, onSuccess, onCancel }) => {
     lich_trinh: '',
     dich_vu_bao_gom: '',
     chinh_sach_huy: '',
+    trang_thai: 'Đang hoạt động',
     hinh_anh: null,
   });
   const [schedules, setSchedules] = useState([]);
@@ -27,6 +28,7 @@ const TourForm = ({ tour = null, onSuccess, onCancel }) => {
   const [imagePreview, setImagePreview] = useState(null);
   const [errors, setErrors] = useState({});
   const [uploading, setUploading] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     if (tour) {
@@ -40,6 +42,7 @@ const TourForm = ({ tour = null, onSuccess, onCancel }) => {
         lich_trinh: tour.lich_trinh || '',
         dich_vu_bao_gom: tour.dich_vu_bao_gom || '',
         chinh_sach_huy: tour.chinh_sach_huy || '',
+        trang_thai: tour.trang_thai || 'Đang hoạt động',
         hinh_anh: null,
       });
       setImagePreview(tour.hinh_anh);
@@ -58,10 +61,13 @@ const TourForm = ({ tour = null, onSuccess, onCancel }) => {
       onSuccess: () => {
         queryClient.invalidateQueries(['admin-tours']);
         queryClient.invalidateQueries(['tour-detail']);
+        setSubmitError('');
         onSuccess();
       },
       onError: (error) => {
-        alert(error.response?.data?.message || 'Lưu tour thất bại');
+        const message = error.response?.data?.message || 'Lưu tour thất bại';
+        setSubmitError(message);
+        alert('❌ ' + message);
       }
     }
   );
@@ -77,10 +83,10 @@ const TourForm = ({ tour = null, onSuccess, onCancel }) => {
           gia_nguoi_lon: '',
           gia_tre_em: '',
         });
-        alert('Thêm lịch khởi hành thành công!');
+        alert('✅ Thêm lịch khởi hành thành công!');
       },
       onError: (error) => {
-        alert(error.response?.data?.message || 'Thêm lịch khởi hành thất bại');
+        alert('❌ ' + (error.response?.data?.message || 'Thêm lịch khởi hành thất bại'));
       }
     }
   );
@@ -91,6 +97,7 @@ const TourForm = ({ tour = null, onSuccess, onCancel }) => {
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
+    setSubmitError('');
   };
 
   const handleFileChange = (e) => {
@@ -115,37 +122,37 @@ const TourForm = ({ tour = null, onSuccess, onCancel }) => {
     const { ngay_khoi_hanh, so_chot_toi_da, gia_nguoi_lon, gia_tre_em } = scheduleForm;
 
     if (!ngay_khoi_hanh || !so_chot_toi_da || !gia_nguoi_lon || !gia_tre_em) {
-      alert('Vui lòng nhập đầy đủ thông tin lịch khởi hành');
+      alert('⚠️ Vui lòng nhập đầy đủ thông tin lịch khởi hành');
       return;
     }
 
-    // If tour exists, create schedule directly
+    // ⭐ NẾU ĐANG SỬA TOUR, GỌI API TẠO LỊCH KHỞI HÀNH
     if (tour) {
       scheduleMutation.mutate({
         ma_tour: tour.ma_tour,
         ...scheduleForm
       });
     } else {
-      // Add to local state for new tour
-      setSchedules([...schedules, { ...scheduleForm, ma_lich_khoi_hanh: Date.now() }]);
+      // ⭐ NẾU ĐANG THÊM MỚI, LƯU VÀO STATE TẠM
+      const newSchedule = {
+        ...scheduleForm,
+        ma_lich_khoi_hanh: Date.now() + Math.random() * 1000,
+        so_chot_da_dat: 0
+      };
+      setSchedules([...schedules, newSchedule]);
       setScheduleForm({
         ngay_khoi_hanh: '',
         so_chot_toi_da: '',
         gia_nguoi_lon: '',
         gia_tre_em: '',
       });
+      alert('✅ Đã thêm lịch khởi hành vào danh sách tạm');
     }
   };
 
   const handleRemoveSchedule = (index) => {
-    if (!tour) {
+    if (window.confirm('Bạn có chắc chắn muốn xóa lịch khởi hành này?')) {
       setSchedules(schedules.filter((_, i) => i !== index));
-    } else {
-      // For existing tour, we need to delete from API
-      if (window.confirm('Bạn có chắc chắn muốn xóa lịch khởi hành này?')) {
-        // API call to delete schedule
-        // This would be implemented with a delete API
-      }
     }
   };
 
@@ -158,7 +165,7 @@ const TourForm = ({ tour = null, onSuccess, onCancel }) => {
       newErrors.so_ngay = 'Số ngày phải từ 1 đến 30';
     }
     if (!tour && schedules.length === 0) {
-      alert('Vui lòng thêm ít nhất một lịch khởi hành');
+      alert('⚠️ Vui lòng thêm ít nhất một lịch khởi hành');
       return false;
     }
     setErrors(newErrors);
@@ -167,27 +174,56 @@ const TourForm = ({ tour = null, onSuccess, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setSubmitError('');
+    
     if (!validateForm()) return;
 
     setUploading(true);
     const submitData = new FormData();
+    
+    // ⭐ THÊM TẤT CẢ DỮ LIỆU VÀO FORM DATA
     Object.keys(formData).forEach(key => {
-      if (formData[key] !== null && formData[key] !== undefined) {
+      if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '') {
         submitData.append(key, formData[key]);
       }
     });
 
-    // Add schedules for new tour
-    if (!tour) {
-      submitData.append('lich_khoi_hanh', JSON.stringify(schedules));
+    // ⭐ THÊM LỊCH KHỞI HÀNH VÀO FORM DATA (QUAN TRỌNG)
+    if (!tour && schedules.length > 0) {
+      const schedulesJson = JSON.stringify(schedules.map(s => ({
+        ngay_khoi_hanh: s.ngay_khoi_hanh,
+        so_chot_toi_da: parseInt(s.so_chot_toi_da),
+        gia_nguoi_lon: parseFloat(s.gia_nguoi_lon),
+        gia_tre_em: parseFloat(s.gia_tre_em)
+      })));
+      submitData.append('lich_khoi_hanh', schedulesJson);
+      console.log('📝 Schedules JSON:', schedulesJson);
+    }
+
+    // ⭐ LOG DỮ LIỆU GỬI ĐI
+    console.log('📝 Submitting tour data:');
+    for (let pair of submitData.entries()) {
+      console.log(pair[0] + ': ' + (pair[0] === 'hinh_anh' ? '[FILE]' : pair[1]));
     }
 
     mutation.mutate(submitData);
     setUploading(false);
   };
 
+  const trangThaiOptions = [
+    { value: 'Đang hoạt động', label: 'Đang hoạt động' },
+    { value: 'Hết chỗ', label: 'Hết chỗ' },
+    { value: 'Ngừng bán', label: 'Ngừng bán' },
+  ];
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {submitError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+          ❌ {submitError}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">Tên tour *</label>
@@ -198,6 +234,7 @@ const TourForm = ({ tour = null, onSuccess, onCancel }) => {
             onChange={handleChange}
             className={`input-field ${errors.ten_tour ? 'border-red-500' : ''}`}
             placeholder="Tour Đà Nẵng 3 ngày 2 đêm"
+            required
           />
           {errors.ten_tour && <p className="text-red-500 text-sm mt-1">{errors.ten_tour}</p>}
         </div>
@@ -211,6 +248,7 @@ const TourForm = ({ tour = null, onSuccess, onCancel }) => {
             onChange={handleChange}
             className={`input-field ${errors.diem_den ? 'border-red-500' : ''}`}
             placeholder="Đà Nẵng, Hội An, Huế"
+            required
           />
           {errors.diem_den && <p className="text-red-500 text-sm mt-1">{errors.diem_den}</p>}
         </div>
@@ -241,8 +279,29 @@ const TourForm = ({ tour = null, onSuccess, onCancel }) => {
             placeholder="3"
             min="1"
             max="30"
+            required
           />
           {errors.so_ngay && <p className="text-red-500 text-sm mt-1">{errors.so_ngay}</p>}
+        </div>
+
+        {/* ⭐ TRẠNG THÁI TOUR */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+          <select
+            name="trang_thai"
+            value={formData.trang_thai}
+            onChange={handleChange}
+            className="input-field"
+          >
+            {trangThaiOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-400 mt-1">
+            Chọn trạng thái hiển thị cho tour
+          </p>
         </div>
 
         <div className="md:col-span-2">
@@ -321,9 +380,14 @@ const TourForm = ({ tour = null, onSuccess, onCancel }) => {
         </div>
       </div>
 
-      {/* Schedules Section */}
+      {/* ⭐ SCHEDULES SECTION */}
       <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Lịch khởi hành</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          📅 Lịch khởi hành
+          <span className="text-sm font-normal text-gray-500">
+            ({schedules.length} lịch đã thêm)
+          </span>
+        </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           <input
@@ -365,42 +429,63 @@ const TourForm = ({ tour = null, onSuccess, onCancel }) => {
           disabled={scheduleMutation.isLoading}
           className="btn-primary"
         >
-          {scheduleMutation.isLoading ? 'Đang thêm...' : 'Thêm lịch khởi hành'}
+          {scheduleMutation.isLoading ? 'Đang thêm...' : '➕ Thêm lịch khởi hành'}
         </button>
 
+        {/* ⭐ HIỂN THỊ DANH SÁCH LỊCH KHỞI HÀNH ĐÃ THÊM */}
         {schedules.length > 0 && (
           <div className="mt-4 space-y-2">
             {schedules.map((schedule, index) => (
-              <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
                 <div>
-                  <p className="font-medium">{schedule.ngay_khoi_hanh}</p>
+                  <p className="font-medium text-gray-800">
+                    📅 {schedule.ngay_khoi_hanh}
+                  </p>
                   <p className="text-sm text-gray-500">
-                    {schedule.so_chot_toi_da} chỗ - {formatCurrency(schedule.gia_nguoi_lon)}/người lớn
+                    👤 {schedule.so_chot_toi_da} chỗ - 
+                    💰 {formatCurrency(schedule.gia_nguoi_lon)}/người lớn - 
+                    👶 {formatCurrency(schedule.gia_tre_em)}/trẻ em
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleRemoveSchedule(index)}
-                  className="text-red-500 hover:text-red-600"
+                  className="text-red-500 hover:text-red-600 px-3 py-1 rounded hover:bg-red-50 transition-colors"
                 >
-                  Xóa
+                  🗑️ Xóa
                 </button>
               </div>
             ))}
           </div>
         )}
+
+        {!tour && schedules.length === 0 && (
+          <p className="text-yellow-600 text-sm mt-2">
+            ⚠️ Vui lòng thêm ít nhất 1 lịch khởi hành để tạo tour
+          </p>
+        )}
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 pt-4 border-t">
         <button
           type="submit"
           disabled={mutation.isLoading || uploading}
-          className="btn-primary disabled:opacity-50"
+          className="btn-primary disabled:opacity-50 flex-1 py-3"
         >
-          {mutation.isLoading || uploading ? 'Đang lưu...' : tour ? 'Cập nhật' : 'Thêm tour'}
+          {mutation.isLoading || uploading ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Đang lưu...
+            </span>
+          ) : (
+            tour ? '💾 Cập nhật tour' : '➕ Thêm tour'
+          )}
         </button>
-        <button type="button" onClick={onCancel} className="btn-secondary">
-          Hủy
+        <button type="button" onClick={onCancel} className="btn-secondary flex-1 py-3">
+          ❌ Hủy
         </button>
       </div>
     </form>

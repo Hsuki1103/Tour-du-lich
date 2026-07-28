@@ -23,11 +23,17 @@ export const getTours = async (req, res) => {
       den_gia,
       so_ngay,
       sort_by = 'ngay_tao',
-      sort_order = 'DESC'
+      sort_order = 'DESC',
+      trang_thai  // ⭐ THÊM BỘ LỌC TRẠNG THÁI
     } = req.query;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    const where = { trang_thai: 'Đang hoạt động' };
+    const where = {};
+
+    // ⭐ NẾU CÓ TRẠNG THÁI THÌ LỌC, NGƯỢC LẠI LẤY TẤT CẢ
+    if (trang_thai) {
+      where.trang_thai = trang_thai;
+    }
 
     if (diem_den) {
       where.diem_den = { [Op.like]: `%${diem_den}%` };
@@ -38,6 +44,8 @@ export const getTours = async (req, res) => {
     if (so_ngay) {
       where.so_ngay = parseInt(so_ngay);
     }
+
+    console.log('📊 GetTours - where:', where);
 
     const tours = await Tour.findAndCountAll({
       where,
@@ -202,7 +210,7 @@ export const getTourDetail = async (req, res) => {
 };
 
 // ============================================
-// LẤY CHI TIẾT LỊCH KHỞI HÀNH - ⭐ THÊM MỚI
+// LẤY CHI TIẾT LỊCH KHỞI HÀNH
 // ============================================
 export const getScheduleDetail = async (req, res) => {
   try {
@@ -291,9 +299,11 @@ export const searchTours = async (req, res) => {
 };
 
 // ============================================
-// ADMIN: TẠO TOUR
+// ADMIN: TẠO TOUR (CÓ LƯU LỊCH KHỞI HÀNH)
 // ============================================
 export const createTour = async (req, res) => {
+  const transaction = await Tour.sequelize.transaction();
+
   try {
     const {
       ten_tour,
@@ -304,14 +314,20 @@ export const createTour = async (req, res) => {
       mo_ta_chi_tiet,
       lich_trinh,
       dich_vu_bao_gom,
-      chinh_sach_huy
+      chinh_sach_huy,
+      trang_thai,
+      lich_khoi_hanh  // ⭐ NHẬN LỊCH KHỞI HÀNH TỪ FRONTEND
     } = req.body;
+
+    console.log('📝 Creating tour:', { ten_tour, diem_den, trang_thai });
+    console.log('📝 Schedules received:', lich_khoi_hanh);
 
     let hinh_anh = null;
     if (req.file) {
       hinh_anh = `/uploads/tours/${req.file.filename}`;
     }
 
+    // ⭐ TẠO TOUR
     const tour = await Tour.create({
       ten_tour,
       diem_den,
@@ -323,15 +339,55 @@ export const createTour = async (req, res) => {
       dich_vu_bao_gom,
       chinh_sach_huy,
       hinh_anh,
-      trang_thai: 'Đang hoạt động'
+      trang_thai: trang_thai || 'Đang hoạt động'
+    }, { transaction });
+
+    console.log('✅ Tour created:', tour.ma_tour);
+
+    // ⭐ LƯU LỊCH KHỞI HÀNH NẾU CÓ
+    if (lich_khoi_hanh) {
+      let schedules = [];
+      try {
+        schedules = typeof lich_khoi_hanh === 'string' 
+          ? JSON.parse(lich_khoi_hanh) 
+          : lich_khoi_hanh;
+      } catch (e) {
+        console.error('Parse schedules error:', e);
+        schedules = [];
+      }
+
+      console.log('📝 Saving schedules:', schedules.length);
+
+      if (schedules.length > 0) {
+        for (const schedule of schedules) {
+          await LichKhoiHanh.create({
+            ma_tour: tour.ma_tour,
+            ngay_khoi_hanh: new Date(schedule.ngay_khoi_hanh),
+            so_chot_toi_da: parseInt(schedule.so_chot_toi_da),
+            so_chot_da_dat: 0,
+            gia_nguoi_lon: parseFloat(schedule.gia_nguoi_lon),
+            gia_tre_em: parseFloat(schedule.gia_tre_em),
+            trang_thai: 'Còn chỗ'
+          }, { transaction });
+        }
+        console.log(`✅ ${schedules.length} schedules saved`);
+      }
+    }
+
+    await transaction.commit();
+
+    // ⭐ LẤY LẠI TOUR VỚI LỊCH KHỞI HÀNH
+    const tourWithSchedules = await Tour.findByPk(tour.ma_tour, {
+      include: [{ model: LichKhoiHanh, as: 'lichKhoiHanhs' }]
     });
 
     res.status(201).json({
       success: true,
       message: 'Tạo tour thành công',
-      data: tour
+      data: tourWithSchedules
     });
   } catch (error) {
+    await transaction.rollback();
     console.error('Create tour error:', error);
     res.status(500).json({
       success: false,
@@ -368,6 +424,8 @@ export const updateTour = async (req, res) => {
       trang_thai
     } = req.body;
 
+    console.log('📝 Updating tour:', { id, ten_tour, trang_thai });
+
     let hinh_anh = tour.hinh_anh;
     if (req.file) {
       if (tour.hinh_anh) {
@@ -393,10 +451,15 @@ export const updateTour = async (req, res) => {
       trang_thai: trang_thai || tour.trang_thai
     });
 
+    // ⭐ LẤY LẠI TOUR VỚI LỊCH KHỞI HÀNH
+    const tourWithSchedules = await Tour.findByPk(id, {
+      include: [{ model: LichKhoiHanh, as: 'lichKhoiHanhs' }]
+    });
+
     res.json({
       success: true,
       message: 'Cập nhật tour thành công',
-      data: tour
+      data: tourWithSchedules
     });
   } catch (error) {
     console.error('Update tour error:', error);

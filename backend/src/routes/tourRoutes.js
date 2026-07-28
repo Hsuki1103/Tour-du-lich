@@ -1,15 +1,15 @@
 import express from 'express';
 import {
-  getTours,
-  getTourDetail,
-  getScheduleDetail,  // ⭐ THÊM IMPORT
-  searchTours,
-  createTour,
-  updateTour,
-  deleteTour,
-  createSchedule,
-  updateSchedule,
-  deleteSchedule
+    getTours,
+    getTourDetail,
+    getScheduleDetail,  // ⭐ ĐÃ CÓ
+    searchTours,
+    createTour,
+    updateTour,
+    deleteTour,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule
 } from '../controllers/tourController.js';
 import { protect } from '../middleware/auth.js';
 import { checkRole, ROLES } from '../middleware/role.js';
@@ -23,7 +23,7 @@ router.get('/', getTours);
 router.get('/search', searchTours);
 router.get('/:id', getTourDetail);
 
-// ⭐ ROUTE LẤY CHI TIẾT LỊCH KHỞI HÀNH
+// ⭐ ROUTE LẤY CHI TIẾT LỊCH KHỞI HÀNH - PHẢI CÓ
 router.get('/schedules/:id', getScheduleDetail);
 
 // Admin & Employee routes

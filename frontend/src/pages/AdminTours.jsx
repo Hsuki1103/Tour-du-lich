@@ -14,7 +14,8 @@ import {
   EyeIcon,
   XMarkIcon,
   MagnifyingGlassIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 
 const AdminTours = () => {
@@ -33,7 +34,7 @@ const AdminTours = () => {
   const isEditing = !!id;
 
   // ⭐ Fetch tours với bộ lọc
-  const { data, isLoading, error } = useQuery(
+  const { data, isLoading, error, refetch } = useQuery(
     ['admin-tours', page, searchTerm, filterKhuVuc, filterTrangThai],
     () => toursAPI.getTours({ 
       page, 
@@ -41,7 +42,8 @@ const AdminTours = () => {
       search: searchTerm || undefined,
       khu_vuc: filterKhuVuc || undefined,
       trang_thai: filterTrangThai || undefined
-    })
+    }),
+    { keepPreviousData: true }
   );
 
   const tours = data?.data?.data?.items || [];
@@ -113,11 +115,13 @@ const AdminTours = () => {
     setShowScheduleModal(true);
   };
 
+  // ⭐ HÀM RESET BỘ LỌC
   const handleResetFilters = () => {
     setSearchTerm('');
     setFilterKhuVuc('');
     setFilterTrangThai('');
     setPage(1);
+    refetch();
   };
 
   if (isLoading) return <LoadingSpinner />;
@@ -162,7 +166,7 @@ const AdminTours = () => {
           </div>
         </div>
 
-        {/* ⭐ TÌM KIẾM NÂNG CAO */}
+        {/* ⭐ BỘ LỌC NÂNG CAO */}
         <div className="flex flex-wrap gap-4 mb-6">
           <div className="flex-1 min-w-[200px]">
             <div className="relative">
@@ -180,7 +184,7 @@ const AdminTours = () => {
           <select
             value={filterKhuVuc}
             onChange={(e) => setFilterKhuVuc(e.target.value)}
-            className="input-field w-40"
+            className="input-field w-48"
           >
             <option value="">Tất cả khu vực</option>
             <option value="Miền Bắc">Miền Bắc</option>
@@ -191,7 +195,7 @@ const AdminTours = () => {
           <select
             value={filterTrangThai}
             onChange={(e) => setFilterTrangThai(e.target.value)}
-            className="input-field w-40"
+            className="input-field w-48"
           >
             <option value="">Tất cả trạng thái</option>
             <option value="Đang hoạt động">Đang hoạt động</option>
@@ -202,8 +206,9 @@ const AdminTours = () => {
           {(searchTerm || filterKhuVuc || filterTrangThai) && (
             <button
               onClick={handleResetFilters}
-              className="btn-secondary whitespace-nowrap"
+              className="btn-secondary whitespace-nowrap flex items-center gap-2"
             >
+              <ArrowPathIcon className="w-4 h-4" />
               Xóa bộ lọc
             </button>
           )}
@@ -326,21 +331,23 @@ const AdminTours = () => {
           ) : (
             <div className="p-12 text-center">
               <p className="text-gray-500">Không tìm thấy tour nào</p>
-              <button
-                onClick={handleResetFilters}
-                className="btn-secondary mt-2 mr-2"
-              >
-                Xóa bộ lọc
-              </button>
-              <button
-                onClick={() => {
-                  setEditingTour(null);
-                  setShowForm(true);
-                }}
-                className="btn-primary mt-2"
-              >
-                Thêm tour đầu tiên
-              </button>
+              <div className="mt-4 flex gap-3 justify-center">
+                <button
+                  onClick={handleResetFilters}
+                  className="btn-secondary"
+                >
+                  Xóa bộ lọc
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingTour(null);
+                    setShowForm(true);
+                  }}
+                  className="btn-primary"
+                >
+                  Thêm tour đầu tiên
+                </button>
+              </div>
             </div>
           )}
         </div>

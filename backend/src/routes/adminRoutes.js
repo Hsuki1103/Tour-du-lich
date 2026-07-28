@@ -1,3 +1,4 @@
+// backend/src/routes/adminRoutes.js
 import express from 'express';
 import {
   getAllUsers,
@@ -8,7 +9,8 @@ import {
   toggleUserStatus,
   assignRole,
   getSystemConfig,
-  updateSystemConfig
+  updateSystemConfig,
+  getCustomersBySpending
 } from '../controllers/adminController.js';
 import { protect } from '../middleware/auth.js';
 import { checkRole, ROLES } from '../middleware/role.js';
@@ -16,6 +18,7 @@ import { validate, commonValidations } from '../utils/validation.js';
 
 const router = express.Router();
 
+// All routes require authentication and admin role
 router.use(protect);
 router.use(checkRole(ROLES.ADMIN));
 
@@ -27,6 +30,9 @@ router.put('/users/:id', validate(commonValidations.idParam), updateUser);
 router.delete('/users/:id', validate(commonValidations.idParam), deleteUser);
 router.patch('/users/:id/toggle-status', validate(commonValidations.idParam), toggleUserStatus);
 router.patch('/users/:id/role', validate(commonValidations.idParam), assignRole);
+
+// Customer management
+router.get('/customers/by-spending', getCustomersBySpending);
 
 // System config
 router.get('/config', getSystemConfig);

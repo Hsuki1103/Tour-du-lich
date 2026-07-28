@@ -1,6 +1,8 @@
+// backend/src/models/NguoiDung.js
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 import bcrypt from 'bcryptjs';
+import { Op } from 'sequelize';
 
 const NguoiDung = sequelize.define('NguoiDung', {
   ma_nguoi_dung: {
@@ -98,7 +100,6 @@ NguoiDung.prototype.kiemTraMatKhau = async function(matKhauNhap) {
     console.log('🔐 Comparing password for:', this.email);
     console.log('🔑 Stored hash:', this.mat_khau);
     
-    // Kiểm tra hash hợp lệ
     if (!this.mat_khau || this.mat_khau.length < 10) {
       console.log('❌ Invalid hash format');
       return false;
@@ -112,4 +113,19 @@ NguoiDung.prototype.kiemTraMatKhau = async function(matKhauNhap) {
     return false;
   }
 };
+
+// ⭐ HÀM LẤY TỔNG CHI TIÊU CỦA NGƯỜI DÙNG
+NguoiDung.prototype.getTotalSpent = async function() {
+  const DonDatTour = sequelize.models.DonDatTour;
+  const result = await DonDatTour.sum('tong_tien', {
+    where: {
+      ma_nguoi_dung: this.ma_nguoi_dung,
+      trang_thai_don_hang: {
+        [Op.notIn]: ['Đã hủy']
+      }
+    }
+  });
+  return result || 0;
+};
+
 export default NguoiDung;

@@ -1,3 +1,4 @@
+// frontend/src/api/admin.js
 import axios from './axios';
 
 export const adminAPI = {
@@ -16,4 +17,8 @@ export const adminAPI = {
     params,
     responseType: 'blob',
   }),
+  
+  // ⭐ API MỚI CHO GỬI MÃ GIẢM GIÁ
+  getCustomersBySpending: (params) => axios.get('/admin/customers/by-spending', { params }),
+  sendDiscountToCustomers: (data) => axios.post('/admin/discounts/send-to-customers', data),
 };

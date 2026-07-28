@@ -1,3 +1,4 @@
+// frontend/src/components/admin/DiscountForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
 import { discountsAPI } from '../../api/discounts';
@@ -14,6 +15,7 @@ const DiscountForm = ({ discount = null, onSuccess, onCancel }) => {
     ngay_bat_dau: '',
     ngay_ket_thuc: '',
     yeu_cau_toi_thieu: 1,
+    loai_ma: 'public', // ⭐ THÊM TRƯỜNG NÀY
   });
   const [errors, setErrors] = useState({});
 
@@ -29,6 +31,7 @@ const DiscountForm = ({ discount = null, onSuccess, onCancel }) => {
         ngay_bat_dau: discount.ngay_bat_dau || '',
         ngay_ket_thuc: discount.ngay_ket_thuc || '',
         yeu_cau_toi_thieu: discount.yeu_cau_toi_thieu || 1,
+        loai_ma: discount.loai_ma || 'public', // ⭐ THÊM
       });
     }
   }, [discount]);
@@ -83,6 +86,7 @@ const DiscountForm = ({ discount = null, onSuccess, onCancel }) => {
       muc_giam: parseFloat(formData.muc_giam),
       so_luong: parseInt(formData.so_luong),
       yeu_cau_toi_thieu: parseInt(formData.yeu_cau_toi_thieu),
+      loai_ma: formData.loai_ma, // ⭐ THÊM
     };
 
     mutation.mutate(submitData);
@@ -113,6 +117,40 @@ const DiscountForm = ({ discount = null, onSuccess, onCancel }) => {
           placeholder="Khuyến mãi mùa hè 2024"
         />
         {errors.ten_chuong_trinh && <p className="text-red-500 text-sm mt-1">{errors.ten_chuong_trinh}</p>}
+      </div>
+
+      {/* ⭐ THÊM TRƯỜNG LOẠI MÃ */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Loại mã giảm giá <span className="text-red-500">*</span>
+        </label>
+        <select
+          value={formData.loai_ma}
+          onChange={(e) => setFormData({ ...formData, loai_ma: e.target.value })}
+          className="input-field"
+        >
+          <option value="public">🌐 Công khai (Ai cũng dùng được)</option>
+          <option value="private">🔒 Riêng tư (Chỉ khách được gửi mới dùng được)</option>
+        </select>
+        <div className="mt-2 p-3 rounded-lg text-sm" style={{
+          backgroundColor: formData.loai_ma === 'public' ? '#f0fdf4' : '#fef3c7',
+          color: formData.loai_ma === 'public' ? '#15803d' : '#92400e'
+        }}>
+          {formData.loai_ma === 'public' ? (
+            <>
+              <p className="font-medium">✅ Mã công khai</p>
+              <p className="text-xs opacity-80">Mã sẽ hiển thị trên trang "Tất cả mã" và AI CŨNG có thể sử dụng.</p>
+              <p className="text-xs opacity-80">Không cần gửi riêng cho khách hàng.</p>
+            </>
+          ) : (
+            <>
+              <p className="font-medium">🔒 Mã riêng tư</p>
+              <p className="text-xs opacity-80">Mã sẽ KHÔNG hiển thị công khai.</p>
+              <p className="text-xs opacity-80">CHỈ khách hàng được Admin gửi mới thấy và sử dụng được.</p>
+              <p className="text-xs opacity-80">Bạn cần sử dụng chức năng "Gửi mã giảm giá" để gửi cho khách hàng.</p>
+            </>
+          )}
+        </div>
       </div>
 
       <div>

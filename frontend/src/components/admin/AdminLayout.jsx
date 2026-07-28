@@ -8,6 +8,7 @@ import {
   UserGroupIcon,
   GiftIcon,
   ChartBarIcon,
+  BanknotesIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ArrowRightOnRectangleIcon,
@@ -28,6 +29,7 @@ const AdminLayout = ({ children }) => {
     { path: '/admin/bookings', icon: ShoppingBagIcon, label: 'Quản lý đơn hàng' },
     { path: '/admin/users', icon: UserGroupIcon, label: 'Quản lý người dùng' },
     { path: '/admin/discounts', icon: GiftIcon, label: 'Mã giảm giá' },
+    { path: '/admin/refunds', icon: BanknotesIcon, label: 'Hoàn tiền' },
     { path: '/admin/reports', icon: ChartBarIcon, label: 'Báo cáo' },
   ];
 

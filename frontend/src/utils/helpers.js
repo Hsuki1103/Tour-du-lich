@@ -1,3 +1,4 @@
+// frontend/src/utils/helpers.js
 export const formatCurrency = (amount) => {
     if (!amount) return '0₫';
     return new Intl.NumberFormat('vi-VN', {
@@ -15,14 +16,22 @@ export const formatDate = (date, format = 'DD/MM/YYYY') => {
     return `${day}/${month}/${year}`;
 };
 
+// ⭐ THÊM HÀM formatDateTime
 export const formatDateTime = (date) => {
     if (!date) return '';
-    return new Date(date).toLocaleString('vi-VN');
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
 
 export const getStatusColor = (status) => {
     const colors = {
         'Chờ xác nhận': 'warning',
+        'Chờ thanh toán': 'warning',
         'Đã xác nhận': 'success',
         'Đang diễn ra': 'info',
         'Đã hoàn thành': 'success',
@@ -37,6 +46,7 @@ export const getStatusColor = (status) => {
 export const getStatusLabel = (status) => {
     const labels = {
         'Chờ xác nhận': 'Chờ xác nhận',
+        'Chờ thanh toán': 'Chờ thanh toán',
         'Đã xác nhận': 'Đã xác nhận',
         'Đang diễn ra': 'Đang diễn ra',
         'Đã hoàn thành': 'Đã hoàn thành',

@@ -1,3 +1,4 @@
+// frontend/src/pages/PaymentResultPage.jsx
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { CheckCircleIcon, XCircleIcon, ArrowPathIcon, HomeIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
@@ -15,8 +16,9 @@ const PaymentResultPage = () => {
     const [orderId, setOrderId] = useState(null);
     const [paymentInfo, setPaymentInfo] = useState(null);
     const [downloading, setDownloading] = useState(false);
+    const [bookingDetail, setBookingDetail] = useState(null);
 
-    // ⭐ LẤY PARAMETERS TỪ URL
+    // Lấy parameters từ URL
     const status = searchParams.get('status');
     const orderIdParam = searchParams.get('order');
     const codeParam = searchParams.get('code');
@@ -33,29 +35,42 @@ const PaymentResultPage = () => {
                     setOrderId(orderIdParam);
                     console.log('📊 Checking payment status for order:', orderIdParam);
                     
-                    // ⭐ GỌI API BACKEND KIỂM TRA TRẠNG THÁI
+                    // Gọi API backend kiểm tra trạng thái
                     const response = await paymentsAPI.getPaymentStatus(orderIdParam);
                     console.log('📊 Payment status response:', response.data);
                     
                     const data = response.data.data;
                     setPaymentStatus(data);
                     
-                    // ⭐ KIỂM TRA TRẠNG THÁI THANH TOÁN
+                    // Lấy chi tiết đơn hàng
+                    try {
+                        const bookingResponse = await bookingsAPI.getBookingDetail(orderIdParam);
+                        setBookingDetail(bookingResponse.data.data);
+                    } catch (err) {
+                        console.log('Không lấy được chi tiết đơn hàng');
+                    }
+                    
+                    // Kiểm tra trạng thái thanh toán
                     const isPaid = data.trang_thai_thanh_toan === 'Đã thanh toán' || 
                                    data.trang_thai_thanh_toan === 'Đã đặt cọc';
                     
                     if (isPaid) {
-                        toast.success('🎉 Thanh toán thành công!');
-                        
                         // Lấy thông tin thanh toán chi tiết
                         const paymentDetail = data.thanhToan;
+                        
+                        // ⭐ XÁC ĐỊNH LOẠI THANH TOÁN (LẦN ĐẦU HAY BỔ SUNG)
+                        const tienConLai = data.tien_con_lai || 0;
+                        const isDepositPayment = tienConLai > 0; // Nếu còn tiền => mới đặt cọc
+                        
                         if (paymentDetail) {
                             setPaymentInfo({
                                 so_tien: paymentDetail.so_tien || data.tong_tien,
                                 phuong_thuc: paymentDetail.phuong_thuc || 'VNPay',
                                 ma_giao_dich: paymentDetail.ma_giao_dich || orderIdParam,
                                 ngay_thanh_toan: paymentDetail.ngay_thanh_toan || new Date().toISOString(),
-                                trang_thai: paymentDetail.trang_thai || data.trang_thai_thanh_toan
+                                trang_thai: paymentDetail.trang_thai || data.trang_thai_thanh_toan,
+                                is_deposit: isDepositPayment, // ⭐ THÊM TRƯỜNG NÀY
+                                tien_con_lai: tienConLai // ⭐ THÊM TRƯỜNG NÀY
                             });
                         } else {
                             setPaymentInfo({
@@ -63,24 +78,11 @@ const PaymentResultPage = () => {
                                 phuong_thuc: 'VNPay',
                                 ma_giao_dich: orderIdParam,
                                 ngay_thanh_toan: new Date().toISOString(),
-                                trang_thai: data.trang_thai_thanh_toan
+                                trang_thai: data.trang_thai_thanh_toan,
+                                is_deposit: isDepositPayment,
+                                tien_con_lai: tienConLai
                             });
                         }
-                    } else {
-                        // ⭐ NẾU CHƯA CẬP NHẬT, KIỂM TRA LẠI SAU 3 GIÂY
-                        setTimeout(async () => {
-                            try {
-                                const retryResponse = await paymentsAPI.getPaymentStatus(orderIdParam);
-                                const retryData = retryResponse.data.data;
-                                if (retryData.trang_thai_thanh_toan === 'Đã thanh toán' || 
-                                    retryData.trang_thai_thanh_toan === 'Đã đặt cọc') {
-                                    setPaymentStatus(retryData);
-                                    toast.success('🎉 Thanh toán thành công!');
-                                }
-                            } catch (error) {
-                                console.error('Retry check error:', error);
-                            }
-                        }, 3000);
                     }
                 } catch (error) {
                     console.error('❌ Check payment status error:', error);
@@ -127,6 +129,10 @@ const PaymentResultPage = () => {
                       (paymentStatus && 
                        (paymentStatus.trang_thai_thanh_toan === 'Đã thanh toán' || 
                         paymentStatus.trang_thai_thanh_toan === 'Đã đặt cọc'));
+
+    // ⭐ XÁC ĐỊNH LOẠI THANH TOÁN
+    const isDepositOnly = paymentInfo?.is_deposit === true && paymentInfo?.tien_con_lai > 0;
+    const isFullPayment = paymentInfo?.is_deposit === false || paymentInfo?.tien_con_lai === 0;
 
     // ⭐ TRANG THẤT BẠI
     if (!isSuccess) {
@@ -177,12 +183,19 @@ const PaymentResultPage = () => {
         <div className="container-custom py-12">
             <div className="max-w-2xl mx-auto">
                 <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                    <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-10 text-center">
+                    <div className={`px-8 py-10 text-center ${isDepositOnly ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : 'bg-gradient-to-r from-green-500 to-emerald-600'}`}>
                         <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
                             <CheckCircleIcon className="w-14 h-14 text-white" />
                         </div>
-                        <h1 className="text-3xl font-bold text-white mb-2">🎉 Thanh toán thành công!</h1>
-                        <p className="text-green-100">Cảm ơn bạn đã thanh toán đơn hàng. Đơn hàng của bạn đã được xác nhận.</p>
+                        <h1 className="text-3xl font-bold text-white mb-2">
+                            {isDepositOnly ? '🎉 Đặt cọc thành công!' : '🎉 Thanh toán thành công!'}
+                        </h1>
+                        <p className="text-white/90">
+                            {isDepositOnly 
+                                ? 'Bạn đã đặt cọc thành công. Vui lòng thanh toán phần còn lại trước ngày khởi hành.'
+                                : 'Cảm ơn bạn đã thanh toán đơn hàng. Đơn hàng của bạn đã được xác nhận.'
+                            }
+                        </p>
                     </div>
 
                     <div className="p-8">
@@ -214,14 +227,66 @@ const PaymentResultPage = () => {
                                     <span className="text-gray-500">Thời gian</span>
                                     <span className="text-gray-700">{formatDateTime(paymentInfo?.ngay_thanh_toan || new Date())}</span>
                                 </div>
+
+                                {/* ⭐ HIỂN THỊ THÔNG TIN ĐẶT CỌC */}
+                                {isDepositOnly && (
+                                    <div className="border-t-2 border-yellow-200 pt-3 mt-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-600 font-medium">Tổng tiền tour</span>
+                                            <span className="font-bold text-gray-800">{formatCurrency(paymentStatus?.tong_tien || 0)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center mt-1">
+                                            <span className="text-gray-600">Đã đặt cọc</span>
+                                            <span className="font-bold text-green-600">{formatCurrency(paymentInfo?.so_tien || 0)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center mt-1">
+                                            <span className="text-gray-600">Còn lại</span>
+                                            <span className="font-bold text-orange-500">{formatCurrency(paymentInfo?.tien_con_lai || 0)}</span>
+                                        </div>
+                                        <div className="mt-3 p-3 bg-yellow-50 rounded-lg text-sm text-yellow-700 flex items-center gap-2">
+                                            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                            </svg>
+                                            <span>Vui lòng thanh toán phần còn lại trước ngày khởi hành.</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ⭐ HIỂN THỊ TRẠNG THÁI */}
                                 <div className="flex justify-between items-center pt-3 border-t-2 border-green-200">
                                     <span className="text-gray-600 font-medium">Trạng thái</span>
                                     <span className="badge badge-success text-lg px-4 py-1">
-                                        ✅ {paymentStatus?.trang_thai_thanh_toan || 'Đã thanh toán'}
+                                        ✅ {isDepositOnly ? 'Đã đặt cọc' : (paymentStatus?.trang_thai_thanh_toan || 'Đã thanh toán')}
                                     </span>
                                 </div>
                             </div>
                         </div>
+
+                        {/* ⭐ THÔNG BÁO CHO ĐẶT CỌC */}
+                        {isDepositOnly && (
+                            <div className="mb-8 bg-yellow-50 rounded-xl p-5 border border-yellow-100">
+                                <h4 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Lưu ý quan trọng
+                                </h4>
+                                <ul className="space-y-2 text-sm text-yellow-700">
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-yellow-500 font-bold">•</span>
+                                        <span>Bạn đã đặt cọc <strong>{formatCurrency(paymentInfo?.so_tien || 0)}</strong></span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-yellow-500 font-bold">•</span>
+                                        <span>Vui lòng thanh toán phần còn lại <strong>{formatCurrency(paymentInfo?.tien_con_lai || 0)}</strong> trước ngày khởi hành</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-yellow-500 font-bold">•</span>
+                                        <span>Bạn có thể thanh toán phần còn lại tại trang <Link to="/my-bookings" className="text-yellow-800 underline font-medium">Đơn hàng của tôi</Link></span>
+                                    </li>
+                                </ul>
+                            </div>
+                        )}
 
                         <div className="mb-8 bg-blue-50 rounded-xl p-5 border border-blue-100">
                             <h4 className="font-semibold text-blue-800 mb-2">📌 Lưu ý quan trọng</h4>

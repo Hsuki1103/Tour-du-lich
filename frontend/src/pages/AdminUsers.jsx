@@ -24,6 +24,7 @@ const AdminUsers = () => {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
@@ -35,10 +36,15 @@ const AdminUsers = () => {
   });
   const [errors, setErrors] = useState({});
 
-  // Fetch users
+  // Fetch users với bộ lọc role
   const { data, isLoading, error, refetch } = useQuery(
-    ['admin-users', page, searchTerm],
-    () => adminAPI.getUsers({ page, limit: 20, search: searchTerm }),
+    ['admin-users', page, searchTerm, roleFilter],
+    () => adminAPI.getUsers({ 
+      page, 
+      limit: 20, 
+      search: searchTerm || undefined,
+      role: roleFilter || undefined  // ⭐ THÊM BỘ LỌC ROLE
+    }),
     { keepPreviousData: true }
   );
 
@@ -162,6 +168,13 @@ const AdminUsers = () => {
     setErrors({});
   };
 
+  // ⭐ HÀM RESET BỘ LỌC
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setRoleFilter('');
+    setPage(1);
+  };
+
   const roleOptions = ['Khách hàng', 'Nhân viên', 'Admin'];
 
   if (isLoading) return <LoadingSpinner />;
@@ -229,7 +242,7 @@ const AdminUsers = () => {
           </div>
         </div>
 
-        {/* ⭐ BỘ LỌC VAI TRÒ */}
+        {/* ⭐ BỘ LỌC NÂNG CAO */}
         <div className="flex flex-wrap gap-4 mb-6">
           <div className="flex-1 min-w-[200px]">
             <input
@@ -241,30 +254,23 @@ const AdminUsers = () => {
             />
           </div>
           <select
-            value={formData.vai_tro}
-            onChange={(e) => {
-              // Filter by role
-              const role = e.target.value;
-              if (role) {
-                // Set filter
-              }
-            }}
-            className="input-field w-40"
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="input-field w-48"
           >
             <option value="">Tất cả vai trò</option>
             {roleOptions.map((role) => (
               <option key={role} value={role}>{role}</option>
             ))}
           </select>
-          <button
-            onClick={() => {
-              setSearchTerm('');
-              // Reset filters
-            }}
-            className="btn-secondary whitespace-nowrap"
-          >
-            Xóa bộ lọc
-          </button>
+          {(searchTerm || roleFilter) && (
+            <button
+              onClick={handleResetFilters}
+              className="btn-secondary whitespace-nowrap"
+            >
+              Xóa bộ lọc
+            </button>
+          )}
         </div>
 
         {/* Users Table */}

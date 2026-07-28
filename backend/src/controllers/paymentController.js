@@ -1,3 +1,4 @@
+// backend/src/controllers/paymentController.js
 import { DonDatTour, ThanhToan, LichKhoiHanh, Tour, NguoiDung, VaiTro } from '../models/index.js';
 import { createVNPayPayment as createVNPayPaymentService, verifyVNPayReturn } from '../utils/vnpayService.js';
 import { sendPaymentConfirmation } from '../utils/emailService.js';
@@ -7,12 +8,14 @@ import { sendPaymentConfirmation } from '../utils/emailService.js';
 // ============================================
 export const createVNPayPayment = async (req, res) => {
     try {
-        const { ma_don_hang, phuong_thuc_thanh_toan, qr_code } = req.body;
+        const { ma_don_hang, phuong_thuc_thanh_toan, qr_code, so_tien, is_additional } = req.body;
 
         console.log('========================================');
         console.log('💳 Creating VNPay payment');
         console.log('📦 Order ID:', ma_don_hang);
         console.log('📦 Payment method:', phuong_thuc_thanh_toan);
+        console.log('📦 Amount:', so_tien);
+        console.log('📦 Is additional payment:', is_additional);
         console.log('========================================');
 
         if (!process.env.VNP_TMN_CODE || !process.env.VNP_HASH_SECRET) {
@@ -62,9 +65,34 @@ export const createVNPayPayment = async (req, res) => {
         }
 
         let soTienCanThanhToan;
-        if (phuong_thuc_thanh_toan === 'coc') {
+
+        // ⭐ KIỂM TRA NẾU LÀ THANH TOÁN BỔ SUNG
+        if (is_additional && so_tien) {
+            // ⭐ THANH TOÁN BỔ SUNG - LẤY SỐ TIỀN TỪ REQUEST
+            soTienCanThanhToan = parseFloat(so_tien);
+            
+            // ⭐ KIỂM TRA SỐ TIỀN KHÔNG VƯỢT QUÁ TIỀN CÒN LẠI
+            const tienConLai = parseFloat(booking.tien_con_lai || 0);
+            if (soTienCanThanhToan > tienConLai) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Số tiền thanh toán (${soTienCanThanhToan}) vượt quá số tiền còn lại (${tienConLai})`
+                });
+            }
+            
+            // ⭐ NẾU THANH TOÁN ĐÚNG BẰNG TIỀN CÒN LẠI -> CẬP NHẬT THÀNH ĐÃ THANH TOÁN
+            if (Math.abs(soTienCanThanhToan - tienConLai) < 0.01) {
+                // Thanh toán đủ số tiền còn lại
+                await booking.update({
+                    trang_thai_thanh_toan: 'Đã thanh toán',
+                    tien_con_lai: 0
+                });
+            }
+        } else if (phuong_thuc_thanh_toan === 'coc') {
+            // ⭐ THANH TOÁN ĐẶT CỌC
             soTienCanThanhToan = parseFloat(booking.tien_coc);
         } else if (phuong_thuc_thanh_toan === 'full') {
+            // ⭐ THANH TOÁN TOÀN BỘ
             soTienCanThanhToan = parseFloat(booking.tong_tien);
         } else {
             return res.status(400).json({
@@ -80,7 +108,7 @@ export const createVNPayPayment = async (req, res) => {
             });
         }
 
-        console.log('💰 Amount:', soTienCanThanhToan);
+        console.log('💰 Amount to pay:', soTienCanThanhToan);
 
         // ⭐ TẠO MÃ GIAO DỊCH DUY NHẤT CHO VNPAY
         const txnRef = `${ma_don_hang}_${Date.now()}`;
@@ -111,7 +139,9 @@ export const createVNPayPayment = async (req, res) => {
             thong_tin: {
                 ...paymentResult.vnp_Params,
                 qr_code: qr_code || false,
-                txn_ref: txnRef
+                txn_ref: txnRef,
+                is_additional: is_additional || false,
+                payment_method: phuong_thuc_thanh_toan
             }
         });
 
@@ -125,7 +155,8 @@ export const createVNPayPayment = async (req, res) => {
                 ma_don_hang: booking.ma_don_hang,
                 so_tien: soTienCanThanhToan,
                 is_qr: qr_code || false,
-                txn_ref: txnRef
+                txn_ref: txnRef,
+                is_additional: is_additional || false
             }
         });
 
@@ -187,12 +218,14 @@ export const handleVNPayIPN = async (req, res) => {
             const soTienDaThanhToan = parseInt(vnp_Amount) / 100;
             console.log('💰 IPN - Amount paid:', soTienDaThanhToan);
 
+            // ⭐ LẤY THÔNG TIN THANH TOÁN ĐỂ BIẾT LÀ THANH TOÁN BỔ SUNG HAY KHÔNG
             let thanhToan = await ThanhToan.findOne({
-                where: { ma_don_hang: ma_don_hang },
+                where: { ma_don_hang: ma_don_hang, ma_giao_dich: vnp_TxnRef },
                 order: [['ngay_tao', 'DESC']]
             });
 
             if (!thanhToan) {
+                // ⭐ NẾU KHÔNG TÌM THẤY, TẠO MỚI
                 thanhToan = await ThanhToan.create({
                     ma_don_hang: ma_don_hang,
                     so_tien: soTienDaThanhToan,
@@ -219,21 +252,48 @@ export const handleVNPayIPN = async (req, res) => {
                 console.log('✅ IPN: Updated payment record');
             }
 
+            // ⭐ KIỂM TRA XEM LÀ THANH TOÁN BỔ SUNG HAY KHÔNG
+            const isAdditional = thanhToan.thong_tin?.is_additional || false;
+            const currentTienConLai = parseFloat(booking.tien_con_lai || 0);
+
             let trangThaiThanhToan = 'Đã thanh toán';
             let trangThaiDonHang = 'Đã xác nhận';
-            
-            if (soTienDaThanhToan < booking.tong_tien) {
-                trangThaiThanhToan = 'Đã đặt cọc';
-                trangThaiDonHang = 'Chờ xác nhận';
+            let tienConLaiMoi = 0;
+
+            if (isAdditional) {
+                // ⭐ THANH TOÁN BỔ SUNG - CẬP NHẬT TIỀN CÒN LẠI
+                tienConLaiMoi = currentTienConLai - soTienDaThanhToan;
+                
+                if (tienConLaiMoi > 0) {
+                    trangThaiThanhToan = 'Đã đặt cọc';
+                    trangThaiDonHang = 'Đã xác nhận';
+                } else {
+                    trangThaiThanhToan = 'Đã thanh toán';
+                    trangThaiDonHang = 'Đã xác nhận';
+                    tienConLaiMoi = 0;
+                }
+            } else {
+                // ⭐ THANH TOÁN LẦN ĐẦU
+                if (soTienDaThanhToan < booking.tong_tien) {
+                    trangThaiThanhToan = 'Đã đặt cọc';
+                    trangThaiDonHang = 'Chờ xác nhận';
+                    tienConLaiMoi = booking.tong_tien - soTienDaThanhToan;
+                } else {
+                    trangThaiThanhToan = 'Đã thanh toán';
+                    trangThaiDonHang = 'Đã xác nhận';
+                    tienConLaiMoi = 0;
+                }
             }
 
             await booking.update({
                 trang_thai_thanh_toan: trangThaiThanhToan,
-                tien_con_lai: booking.tong_tien - soTienDaThanhToan,
+                tien_con_lai: tienConLaiMoi,
                 trang_thai_don_hang: trangThaiDonHang
             });
 
             console.log(`✅ IPN: Order ${ma_don_hang} updated successfully!`);
+            console.log(`   - Status: ${trangThaiThanhToan}`);
+            console.log(`   - Remaining: ${tienConLaiMoi}`);
 
             try {
                 await sendPaymentConfirmation(booking.nguoiDung.email, {
@@ -335,20 +395,64 @@ export const handleVNPayReturn = async (req, res) => {
                 const soTien = parseInt(vnp_Amount) / 100;
                 console.log('💰 Order total:', booking.tong_tien);
                 console.log('💰 Paid amount:', soTien);
+                console.log('💰 Current remaining:', booking.tien_con_lai);
                 
-                const trangThaiThanhToan = soTien >= booking.tong_tien ? 'Đã thanh toán' : 'Đã đặt cọc';
+                // ⭐ KIỂM TRA XEM CÓ PHẢI THANH TOÁN BỔ SUNG KHÔNG
+                // Bằng cách kiểm tra số tiền đã thanh toán + số tiền đã trả trước đó
+                const thanhToanCu = await ThanhToan.findOne({
+                    where: { ma_don_hang: ma_don_hang },
+                    order: [['ngay_tao', 'DESC']]
+                });
+
+                const isAdditional = thanhToanCu?.thong_tin?.is_additional || false;
+                const tienDaThanhToanTruoc = parseFloat(booking.tong_tien) - parseFloat(booking.tien_con_lai || 0);
+                
+                console.log('💰 Previous paid:', tienDaThanhToanTruoc);
+                console.log('💰 Is additional:', isAdditional);
+                
+                let trangThaiThanhToan = 'Đã thanh toán';
+                let trangThaiDonHang = 'Đã xác nhận';
+                let tienConLai = 0;
+
+                if (isAdditional || tienDaThanhToanTruoc > 0) {
+                    // ⭐ THANH TOÁN BỔ SUNG - CẬP NHẬT TIỀN CÒN LẠI
+                    tienConLai = parseFloat(booking.tien_con_lai || 0) - soTien;
+                    
+                    if (tienConLai > 0) {
+                        trangThaiThanhToan = 'Đã đặt cọc';
+                        trangThaiDonHang = 'Đã xác nhận';
+                    } else {
+                        trangThaiThanhToan = 'Đã thanh toán';
+                        trangThaiDonHang = 'Đã xác nhận';
+                        tienConLai = 0;
+                    }
+                } else {
+                    // ⭐ THANH TOÁN LẦN ĐẦU
+                    if (soTien >= parseFloat(booking.tong_tien)) {
+                        trangThaiThanhToan = 'Đã thanh toán';
+                        trangThaiDonHang = 'Đã xác nhận';
+                        tienConLai = 0;
+                    } else {
+                        trangThaiThanhToan = 'Đã đặt cọc';
+                        trangThaiDonHang = 'Chờ xác nhận';
+                        tienConLai = parseFloat(booking.tong_tien) - soTien;
+                    }
+                }
                 
                 await booking.update({
                     trang_thai_thanh_toan: trangThaiThanhToan,
-                    trang_thai_don_hang: 'Đã xác nhận',
-                    tien_con_lai: booking.tong_tien - soTien
+                    trang_thai_don_hang: trangThaiDonHang,
+                    tien_con_lai: tienConLai
                 });
                 
-                console.log(`✅ Updated order ${ma_don_hang} to ${trangThaiThanhToan}`);
+                console.log(`✅ Updated order ${ma_don_hang}:`);
+                console.log(`   - Payment status: ${trangThaiThanhToan}`);
+                console.log(`   - Order status: ${trangThaiDonHang}`);
+                console.log(`   - Remaining: ${tienConLai}`);
                 
                 // Tạo hoặc cập nhật payment record
                 let thanhToan = await ThanhToan.findOne({
-                    where: { ma_don_hang: ma_don_hang },
+                    where: { ma_don_hang: ma_don_hang, ma_giao_dich: vnp_TxnRef },
                     order: [['ngay_tao', 'DESC']]
                 });
 
@@ -362,7 +466,8 @@ export const handleVNPayReturn = async (req, res) => {
                         ngay_thanh_toan: new Date(vnp_PayDate),
                         thong_tin: {
                             return_response: queryParams,
-                            return_processed_at: new Date().toISOString()
+                            return_processed_at: new Date().toISOString(),
+                            is_additional: isAdditional || tienDaThanhToanTruoc > 0
                         }
                     });
                     console.log('✅ Created payment record');
@@ -373,7 +478,8 @@ export const handleVNPayReturn = async (req, res) => {
                         thong_tin: {
                             ...thanhToan.thong_tin,
                             return_response: queryParams,
-                            return_processed_at: new Date().toISOString()
+                            return_processed_at: new Date().toISOString(),
+                            is_additional: isAdditional || tienDaThanhToanTruoc > 0
                         }
                     });
                     console.log('✅ Updated payment record');
@@ -485,7 +591,8 @@ export const getPaymentStatus = async (req, res) => {
                 tien_con_lai: booking.tien_con_lai || 0,
                 trang_thai_thanh_toan: booking.trang_thai_thanh_toan,
                 trang_thai_don_hang: booking.trang_thai_don_hang,
-                thanhToan: thanhToan || null
+                thanhToan: thanhToan || null,
+                so_tien_da_thanh_toan: parseFloat(booking.tong_tien) - parseFloat(booking.tien_con_lai || 0)
             }
         });
 

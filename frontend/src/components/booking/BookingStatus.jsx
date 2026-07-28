@@ -4,6 +4,7 @@ const BookingStatus = ({ status, paymentStatus }) => {
     const getStatusConfig = () => {
         const configs = {
             'Chờ xác nhận': { color: 'badge-warning', label: 'Chờ xác nhận' },
+            'Chờ thanh toán': { color: 'badge-warning', label: 'Chờ thanh toán' },
             'Đã xác nhận': { color: 'badge-success', label: 'Đã xác nhận' },
             'Đang diễn ra': { color: 'badge-primary', label: 'Đang diễn ra' },
             'Đã hoàn thành': { color: 'badge-success', label: 'Đã hoàn thành' },

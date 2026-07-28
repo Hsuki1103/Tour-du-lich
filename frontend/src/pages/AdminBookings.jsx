@@ -466,22 +466,6 @@ const AdminBookings = () => {
           </div>
         </div>
 
-        {/* ⭐ THỐNG KÊ DOANH THU */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl shadow-sm p-4 text-center text-white">
-            <p className="text-sm text-primary-100">Tổng doanh thu</p>
-            <p className="text-2xl font-bold">{formatCurrency(stats.tongDoanhThu)}</p>
-          </div>
-          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl shadow-sm p-4 text-center text-white">
-            <p className="text-sm text-green-100">Đã thanh toán</p>
-            <p className="text-2xl font-bold">{stats.daThanhToan} đơn</p>
-          </div>
-          <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-sm p-4 text-center text-white">
-            <p className="text-sm text-orange-100">Chờ thanh toán</p>
-            <p className="text-2xl font-bold">{stats.chuaThanhToan} đơn</p>
-          </div>
-        </div>
-
         {/* Bộ lọc */}
         <div className="flex flex-wrap gap-4 mb-6">
           <button
