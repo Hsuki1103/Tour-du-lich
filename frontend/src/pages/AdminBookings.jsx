@@ -1,3 +1,4 @@
+// frontend/src/pages/AdminBookings.jsx
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { bookingsAPI } from '../api/bookings';
@@ -20,8 +21,10 @@ import {
   ChartBarIcon,
   ClockIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
+import { toast } from 'react-toastify';
 
 const AdminBookings = () => {
   const queryClient = useQueryClient();
@@ -36,6 +39,12 @@ const AdminBookings = () => {
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  // ⭐ STATE CHO ACTION LOADING
+  const [actionLoading, setActionLoading] = useState({
+    confirm: null,   // Lưu id đang confirm
+    cancel: null,    // Lưu id đang cancel
+  });
   
   // ⭐ FORM DATA
   const [formData, setFormData] = useState({
@@ -161,24 +170,24 @@ const AdminBookings = () => {
     dangDienRa: bookings.filter(b => b.trang_thai_don_hang === 'Đang diễn ra').length,
     daHoanThanh: bookings.filter(b => b.trang_thai_don_hang === 'Đã hoàn thành').length,
     daHuy: bookings.filter(b => b.trang_thai_don_hang === 'Đã hủy').length,
-    // Thống kê thanh toán
     chuaThanhToan: bookings.filter(b => b.trang_thai_thanh_toan === 'Chưa thanh toán').length,
     daDatCoc: bookings.filter(b => b.trang_thai_thanh_toan === 'Đã đặt cọc').length,
     daThanhToan: bookings.filter(b => b.trang_thai_thanh_toan === 'Đã thanh toán').length,
-    // Tổng doanh thu
     tongDoanhThu: bookings.reduce((sum, b) => sum + (b.tong_tien || 0), 0),
   };
 
-  // ⭐ MUTATIONS
+  // ⭐ MUTATIONS - CÓ TOAST THÔNG BÁO
   const confirmMutation = useMutation(
     (id) => bookingsAPI.confirmBooking(id),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['admin-bookings']);
-        alert('✅ Duyệt đơn hàng thành công!');
+        setActionLoading(prev => ({ ...prev, confirm: null }));
+        toast.success('✅ Xác nhận đơn hàng thành công!');
       },
       onError: (error) => {
-        alert(error.response?.data?.message || '❌ Duyệt đơn thất bại');
+        setActionLoading(prev => ({ ...prev, confirm: null }));
+        toast.error(error.response?.data?.message || '❌ Xác nhận đơn hàng thất bại');
       }
     }
   );
@@ -190,10 +199,12 @@ const AdminBookings = () => {
         queryClient.invalidateQueries(['admin-bookings']);
         setShowCancelModal(false);
         setCancelReason('');
-        alert('✅ Hủy đơn hàng thành công!');
+        setActionLoading(prev => ({ ...prev, cancel: null }));
+        toast.success('✅ Hủy đơn hàng thành công!');
       },
       onError: (error) => {
-        alert(error.response?.data?.message || '❌ Hủy đơn thất bại');
+        setActionLoading(prev => ({ ...prev, cancel: null }));
+        toast.error(error.response?.data?.message || '❌ Hủy đơn hàng thất bại');
       }
     }
   );
@@ -204,10 +215,10 @@ const AdminBookings = () => {
       onSuccess: () => {
         queryClient.invalidateQueries(['admin-bookings']);
         setShowEditModal(false);
-        alert('✅ Cập nhật đơn hàng thành công!');
+        toast.success('✅ Cập nhật đơn hàng thành công!');
       },
       onError: (error) => {
-        alert(error.response?.data?.message || '❌ Cập nhật đơn hàng thất bại');
+        toast.error(error.response?.data?.message || '❌ Cập nhật đơn hàng thất bại');
       }
     }
   );
@@ -219,10 +230,10 @@ const AdminBookings = () => {
         queryClient.invalidateQueries(['admin-bookings']);
         setShowAddModal(false);
         resetForm();
-        alert('✅ Thêm đơn hàng thành công!');
+        toast.success('✅ Thêm đơn hàng thành công!');
       },
       onError: (error) => {
-        alert(error.response?.data?.message || '❌ Thêm đơn hàng thất bại');
+        toast.error(error.response?.data?.message || '❌ Thêm đơn hàng thất bại');
       }
     }
   );
@@ -258,17 +269,21 @@ const AdminBookings = () => {
     }
   };
 
+  // ⭐ HANDLE CONFIRM - CÓ LOADING
   const handleConfirm = (id) => {
     if (window.confirm('Xác nhận duyệt đơn hàng này?')) {
+      setActionLoading(prev => ({ ...prev, confirm: id }));
       confirmMutation.mutate(id);
     }
   };
 
+  // ⭐ HANDLE CANCEL - CÓ LOADING
   const handleCancel = () => {
     if (!cancelReason.trim()) {
-      alert('Vui lòng nhập lý do hủy');
+      toast.warning('Vui lòng nhập lý do hủy');
       return;
     }
+    setActionLoading(prev => ({ ...prev, cancel: selectedBooking?.ma_don_hang }));
     cancelMutation.mutate({ 
       id: selectedBooking?.ma_don_hang, 
       ly_do: cancelReason 
@@ -338,7 +353,7 @@ const AdminBookings = () => {
 
     try {
       if (!formData.ma_lich_khoi_hanh) {
-        alert('Vui lòng chọn lịch khởi hành');
+        toast.warning('Vui lòng chọn lịch khởi hành');
         setLoading(false);
         return;
       }
@@ -365,7 +380,7 @@ const AdminBookings = () => {
 
       await addMutation.mutateAsync(bookingData);
     } catch (error) {
-      alert(error.message || '❌ Thêm đơn hàng thất bại');
+      toast.error(error.message || '❌ Thêm đơn hàng thất bại');
     } finally {
       setLoading(false);
     }
@@ -377,7 +392,7 @@ const AdminBookings = () => {
 
     try {
       if (!formData.ma_lich_khoi_hanh) {
-        alert('Vui lòng chọn lịch khởi hành');
+        toast.warning('Vui lòng chọn lịch khởi hành');
         setLoading(false);
         return;
       }
@@ -401,10 +416,54 @@ const AdminBookings = () => {
         data: bookingData 
       });
     } catch (error) {
-      alert(error.message || '❌ Cập nhật đơn hàng thất bại');
+      toast.error(error.message || '❌ Cập nhật đơn hàng thất bại');
     } finally {
       setLoading(false);
     }
+  };
+
+  // ⭐ RENDER BUTTON CONFIRM VỚI LOADING
+  const renderConfirmButton = (booking) => {
+    const isLoading = actionLoading.confirm === booking.ma_don_hang;
+    return (
+      <button
+        onClick={() => handleConfirm(booking.ma_don_hang)}
+        disabled={isLoading}
+        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        title="Duyệt đơn"
+      >
+        {isLoading ? (
+          <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        ) : (
+          <CheckIcon className="w-5 h-5" />
+        )}
+      </button>
+    );
+  };
+
+  // ⭐ RENDER BUTTON CANCEL VỚI LOADING
+  const renderCancelButton = (booking) => {
+    const isLoading = actionLoading.cancel === booking.ma_don_hang;
+    return (
+      <button
+        onClick={() => openCancelModal(booking)}
+        disabled={isLoading}
+        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        title="Hủy đơn"
+      >
+        {isLoading ? (
+          <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        ) : (
+          <XMarkIcon className="w-5 h-5" />
+        )}
+      </button>
+    );
   };
 
   if (isLoading) return <LoadingSpinner />;
@@ -419,7 +478,10 @@ const AdminBookings = () => {
             <p className="text-gray-600">Xem, xử lý và quản lý các đơn hàng</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => refetch()} className="btn-secondary">Làm mới</button>
+            <button onClick={() => refetch()} className="btn-secondary flex items-center gap-2">
+              <ArrowPathIcon className="w-4 h-4" />
+              Làm mới
+            </button>
             <button onClick={handleAdd} className="btn-primary flex items-center gap-2">
               <PlusIcon className="w-5 h-5" />
               Thêm đơn hàng
@@ -557,14 +619,10 @@ const AdminBookings = () => {
                               <PencilIcon className="w-5 h-5" />
                             </button>
                             {booking.trang_thai_don_hang === 'Chờ xác nhận' && (
-                              <button onClick={() => handleConfirm(booking.ma_don_hang)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg" title="Duyệt đơn">
-                                <CheckIcon className="w-5 h-5" />
-                              </button>
+                              renderConfirmButton(booking)
                             )}
                             {(booking.trang_thai_don_hang === 'Chờ xác nhận' || booking.trang_thai_don_hang === 'Đã xác nhận') && (
-                              <button onClick={() => openCancelModal(booking)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Hủy">
-                                <XMarkIcon className="w-5 h-5" />
-                              </button>
+                              renderCancelButton(booking)
                             )}
                           </div>
                         </td>
@@ -592,7 +650,7 @@ const AdminBookings = () => {
         </div>
       </div>
 
-      {/* ⭐ MODAL THÊM ĐƠN HÀNG */}
+      {/* ⭐ MODAL THÊM ĐƠN HÀNG - Giữ nguyên */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -761,7 +819,7 @@ const AdminBookings = () => {
         </div>
       )}
 
-      {/* ⭐ MODAL SỬA ĐƠN HÀNG */}
+      {/* ⭐ MODAL SỬA ĐƠN HÀNG - Giữ nguyên */}
       {showEditModal && selectedBooking && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -904,7 +962,7 @@ const AdminBookings = () => {
         </div>
       )}
 
-      {/* ⭐ MODAL CHI TIẾT */}
+      {/* ⭐ MODAL CHI TIẾT - Giữ nguyên */}
       {showDetailModal && selectedBooking && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -942,7 +1000,16 @@ const AdminBookings = () => {
               </div>
               <div className="flex gap-3 pt-4">
                 {selectedBooking.trang_thai_don_hang === 'Chờ xác nhận' && (
-                  <button onClick={() => { handleConfirm(selectedBooking.ma_don_hang); setShowDetailModal(false); }} className="btn-primary">Duyệt đơn</button>
+                  <button 
+                    onClick={() => { 
+                      handleConfirm(selectedBooking.ma_don_hang); 
+                      setShowDetailModal(false); 
+                    }} 
+                    className="btn-primary"
+                    disabled={actionLoading.confirm === selectedBooking.ma_don_hang}
+                  >
+                    {actionLoading.confirm === selectedBooking.ma_don_hang ? 'Đang xử lý...' : 'Duyệt đơn'}
+                  </button>
                 )}
                 <button onClick={() => setShowDetailModal(false)} className="btn-secondary">Đóng</button>
               </div>
@@ -951,22 +1018,37 @@ const AdminBookings = () => {
         </div>
       )}
 
-      {/* ⭐ MODAL HỦY ĐƠN */}
+      {/* ⭐ MODAL HỦY ĐƠN - CÓ LOADING */}
       {showCancelModal && selectedBooking && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-800 mb-4">Hủy đơn hàng #{selectedBooking.ma_don_hang}</h3>
-            <textarea
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              className="input-field"
-              rows="3"
-              placeholder="Nhập lý do hủy..."
-            />
-            <div className="flex gap-3 mt-4">
-              <button onClick={handleCancel} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 flex-1">Xác nhận hủy</button>
-              <button onClick={() => { setShowCancelModal(false); setCancelReason(''); }} className="btn-secondary flex-1">Hủy</button>
-            </div>
+            
+            {/* ⭐ HIỂN THỊ TRẠNG THÁI LOADING */}
+            {actionLoading.cancel === selectedBooking.ma_don_hang ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent mx-auto mb-4"></div>
+                <p className="text-gray-600">Đang xử lý hủy đơn hàng...</p>
+              </div>
+            ) : (
+              <>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  className="input-field"
+                  rows="3"
+                  placeholder="Nhập lý do hủy..."
+                />
+                <div className="flex gap-3 mt-4">
+                  <button onClick={handleCancel} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 flex-1">
+                    Xác nhận hủy
+                  </button>
+                  <button onClick={() => { setShowCancelModal(false); setCancelReason(''); }} className="btn-secondary flex-1">
+                    Hủy
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

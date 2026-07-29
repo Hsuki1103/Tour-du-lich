@@ -9,7 +9,7 @@ import RefundRequestForm from '../components/booking/RefundRequestForm';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import Pagination from '../components/common/Pagination';
 import BookingStatus from '../components/booking/BookingStatus';
-import { formatCurrency, formatDate } from '../utils/helpers';
+import { formatCurrency, formatDate, formatDateTime } from '../utils/helpers';
 import { toast } from 'react-toastify';
 import {
     EyeIcon,
@@ -26,7 +26,9 @@ import {
     CurrencyDollarIcon,
     BanknotesIcon,
     TrashIcon,
-    PlusIcon
+    PlusIcon,
+    ClockIcon,
+    CheckCircleIcon
 } from '@heroicons/react/24/outline';
 
 const MyBookingsPage = () => {
@@ -236,6 +238,18 @@ const MyBookingsPage = () => {
         return booking?.yeu_cau_dac_biet?.includes('KHÁCH HÀNG CHỌN THANH TOÁN TẠI VĂN PHÒNG');
     };
 
+    // ⭐ HÀM LẤY TRẠNG THÁI HOÀN TIỀN BADGE
+    const getRefundStatusBadge = (status) => {
+        const configs = {
+            'Chưa yêu cầu': { color: 'badge-gray', label: 'Chưa yêu cầu' },
+            'Đã yêu cầu': { color: 'badge-warning', label: 'Đang chờ xử lý' },
+            'Đã hoàn': { color: 'badge-success', label: 'Đã hoàn tiền' },
+            'Từ chối': { color: 'badge-danger', label: 'Từ chối' },
+        };
+        const config = configs[status] || configs['Chưa yêu cầu'];
+        return <span className={`badge ${config.color}`}>{config.label}</span>;
+    };
+
     const filters = [
         { value: '', label: 'Tất cả' },
         { value: 'Chờ xác nhận', label: 'Chờ xác nhận' },
@@ -291,6 +305,14 @@ const MyBookingsPage = () => {
                             const hasOfflineNote = hasOfflinePaymentNote(booking);
                             const isDepositPaid = booking.trang_thai_thanh_toan === 'Đã đặt cọc' && booking.tien_con_lai > 0;
 
+                            // ⭐ KIỂM TRA TRẠNG THÁI HOÀN TIỀN
+                            const isRefundRejected = booking.hoan_tien === 'Từ chối';
+                            const isRefundApproved = booking.hoan_tien === 'Đã hoàn';
+                            const isRefundPending = booking.hoan_tien === 'Đã yêu cầu';
+                            const hasRefundStatus = booking.trang_thai_don_hang === 'Đã hủy' && 
+                                                   booking.hoan_tien && 
+                                                   booking.hoan_tien !== 'Chưa yêu cầu';
+
                             return (
                                 <div key={booking.ma_don_hang} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                                     {hasOfflineNote && (
@@ -299,6 +321,69 @@ const MyBookingsPage = () => {
                                             <span className="text-xs text-blue-600">Đã ghi nhận thanh toán tại văn phòng</span>
                                         </div>
                                     )}
+
+                                    {/* ⭐ HIỂN THỊ TRẠNG THÁI HOÀN TIỀN - GIỐNG NHAU CHO CẢ TỪ CHỐI VÀ ĐÃ HOÀN */}
+                                    {hasRefundStatus && (
+                                        <div className={`px-4 py-2 border-b flex flex-wrap items-center justify-between gap-2 ${
+                                            isRefundRejected ? 'bg-red-50 border-red-200' : 
+                                            isRefundApproved ? 'bg-green-50 border-green-200' : 
+                                            'bg-yellow-50 border-yellow-200'
+                                        }`}>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                {isRefundRejected ? (
+                                                    <XCircleIcon className="w-4 h-4 text-red-500" />
+                                                ) : isRefundApproved ? (
+                                                    <CheckCircleIcon className="w-4 h-4 text-green-500" />
+                                                ) : (
+                                                    <ClockIcon className="w-4 h-4 text-yellow-500" />
+                                                )}
+                                                <span className="text-sm font-medium" style={{
+                                                    color: isRefundRejected ? '#dc2626' : 
+                                                           isRefundApproved ? '#16a34a' : '#d97706'
+                                                }}>
+                                                    Trạng thái hoàn tiền:
+                                                </span>
+                                                {getRefundStatusBadge(booking.hoan_tien)}
+                                                {booking.so_tien_hoan > 0 && (
+                                                    <span className="text-sm text-gray-500">
+                                                        ({formatCurrency(booking.so_tien_hoan)})
+                                                    </span>
+                                                )}
+                                            </div>
+                                            
+                                            {/* ⭐ HIỂN THỊ LÝ DO TỪ CHỐI */}
+                                            {isRefundRejected && booking.thong_tin_hoan_tien?.ly_do_tu_choi && (
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-xs text-red-600 max-w-[200px] truncate" 
+                                                          title={booking.thong_tin_hoan_tien.ly_do_tu_choi}>
+                                                        Lý do: {booking.thong_tin_hoan_tien.ly_do_tu_choi}
+                                                    </span>
+                                                    <button 
+                                                        onClick={() => handleViewDetail(booking.ma_don_hang)}
+                                                        className="text-xs text-blue-500 hover:text-blue-600 underline"
+                                                    >
+                                                        Xem chi tiết
+                                                    </button>
+                                                </div>
+                                            )}
+                                            
+                                            {/* ⭐ HIỂN THỊ THỜI GIAN HOÀN/ TỪ CHỐI */}
+                                            {isRefundApproved && booking.thong_tin_hoan_tien?.ngay_duyet && (
+                                                <span className="text-xs text-green-600">
+                                                    Hoàn vào: {formatDate(booking.thong_tin_hoan_tien.ngay_duyet)}
+                                                </span>
+                                            )}
+                                            {isRefundRejected && booking.thong_tin_hoan_tien?.ngay_tu_choi && (
+                                                <span className="text-xs text-red-600">
+                                                    Từ chối vào: {formatDate(booking.thong_tin_hoan_tien.ngay_tu_choi)}
+                                                </span>
+                                            )}
+                                            {isRefundPending && (
+                                                <span className="text-xs text-yellow-600">⏳ Đang chờ xử lý</span>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <div className="p-4 md:p-6 border-b">
                                         <div className="flex flex-wrap items-center justify-between gap-4">
                                             <div>
@@ -322,14 +407,13 @@ const MyBookingsPage = () => {
                                             </div>
                                         </div>
                                     </div>
+
                                     <div className="p-4 bg-gray-50 flex flex-wrap items-center justify-between gap-3">
                                         <div className="flex flex-wrap gap-2">
-                                            {/* Nút Chi tiết */}
                                             <button onClick={() => handleViewDetail(booking.ma_don_hang)} className="btn-secondary text-sm flex items-center gap-1">
                                                 <EyeIcon className="w-4 h-4" /> Chi tiết
                                             </button>
                                             
-                                            {/* Nút Tải vé */}
                                             {canDownloadVoucher && (
                                                 <button onClick={() => handleDownloadVoucher(booking.ma_don_hang)} className="btn-secondary text-sm flex items-center gap-1" disabled={downloadMutation.isLoading}>
                                                     <DocumentArrowDownIcon className="w-4 h-4" />
@@ -337,7 +421,6 @@ const MyBookingsPage = () => {
                                                 </button>
                                             )}
                                             
-                                            {/* ⭐ NÚT THANH TOÁN PHẦN CÒN LẠI - KHI ĐÃ ĐẶT CỌC */}
                                             {isDepositPaid && (
                                                 <button 
                                                     onClick={() => navigate(`/payment/${booking.ma_don_hang}`, { 
@@ -355,19 +438,17 @@ const MyBookingsPage = () => {
                                                 </button>
                                             )}
                                             
-                                            {/* ⭐ NÚT THANH TOÁN LẦN ĐẦU - KHI CHƯA THANH TOÁN */}
                                             {booking.trang_thai_don_hang === 'Chờ xác nhận' && booking.trang_thai_thanh_toan === 'Chưa thanh toán' && (
                                                 <button onClick={() => navigate(`/payment/${booking.ma_don_hang}`)} className="btn-primary text-sm">
                                                     Thanh toán
                                                 </button>
                                             )}
                                             
-                                          {/* ⭐ NÚT HỦY ĐƠN - Ở SAU CÙNG */}
-                                                                      {canCancel && (
-                                                                          <button onClick={handleCancelClick} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2" disabled={cancelMutation.isLoading}>
-                                                                              <XMarkIcon className="w-5 h-5" />
-                                                                              {cancelMutation.isLoading ? 'Đang xử lý...' : 'Hủy đơn hàng'}
-                                                                          </button>
+                                            {canCancel && (
+                                                <button onClick={() => handleCancelClick(booking)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2" disabled={cancelMutation.isLoading}>
+                                                    <XMarkIcon className="w-5 h-5" />
+                                                    {cancelMutation.isLoading ? 'Đang xử lý...' : 'Hủy đơn hàng'}
+                                                </button>
                                             )}
                                         </div>
                                     </div>
@@ -388,9 +469,7 @@ const MyBookingsPage = () => {
                 </div>
             )}
 
-            {/* ============================================ */}
             {/* MODAL XÁC NHẬN HỦY ĐƠN HÀNG */}
-            {/* ============================================ */}
             {showCancelConfirmModal && cancelBookingItem && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
@@ -473,7 +552,7 @@ const MyBookingsPage = () => {
 
                         {refundInfo?.percentage > 0 && (
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                                <p className="text-sm text-blue-700">Số tiền sẽ được hoàn trong vòng 3-5 ngày làm việc</p>
+                                <p className="text-sm text-blue-700">💰 Số tiền sẽ được hoàn trong vòng 3-5 ngày làm việc</p>
                             </div>
                         )}
 
@@ -490,9 +569,7 @@ const MyBookingsPage = () => {
                 </div>
             )}
 
-            {/* ============================================ */}
             {/* FORM YÊU CẦU HOÀN TIỀN */}
-            {/* ============================================ */}
             {showRefundForm && refundBooking && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">

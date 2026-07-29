@@ -20272,7 +20272,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 999999,
   message: {
     success: false,
     message: 'Quá nhiều yêu cầu, vui lòng thử lại sau 15 phút.'
@@ -20550,6 +20550,7 @@ const DanhGia = sequelize.define('DanhGia', {
 export default DanhGia;
 
 ===== FILE: D:\DoAn\LuanVan\Test2\tour-booking-system\backend\src\models\DonDatTour.js =====
+// backend/src/models/DonDatTour.js
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 
@@ -20632,9 +20633,9 @@ const DonDatTour = sequelize.define('DonDatTour', {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
   },
-  // ⭐ THÊM CÁC TRƯỜNG MỚI CHO HOÀN TIỀN
+  // ⭐ SỬA ENUM - THÊM 'Từ chối'
   hoan_tien: {
-    type: DataTypes.ENUM('Chưa yêu cầu', 'Đã yêu cầu', 'Đã hoàn'),
+    type: DataTypes.ENUM('Chưa yêu cầu', 'Đã yêu cầu', 'Đã hoàn', 'Từ chối'),
     defaultValue: 'Chưa yêu cầu'
   },
   thong_tin_hoan_tien: {
@@ -20696,77 +20697,209 @@ import KhachHangMaGiamGia from './KhachHangMaGiamGia.js';
 // ĐỊNH NGHĨA QUAN HỆ
 // ============================================
 
-// VaiTro - NguoiDung
-VaiTro.hasMany(NguoiDung, { foreignKey: 'ma_vai_tro', as: 'nguoiDungs' });
-NguoiDung.belongsTo(VaiTro, { foreignKey: 'ma_vai_tro', as: 'vaiTro' });
+// ============================================
+// 1. VaiTro - NguoiDung
+// ============================================
+VaiTro.hasMany(NguoiDung, { 
+    foreignKey: 'ma_vai_tro', 
+    as: 'nguoiDungs' 
+});
+NguoiDung.belongsTo(VaiTro, { 
+    foreignKey: 'ma_vai_tro', 
+    as: 'vaiTro' 
+});
 
-// NguoiDung - NhanVien
-NguoiDung.hasOne(NhanVien, { foreignKey: 'ma_nguoi_dung', as: 'nhanVien' });
-NhanVien.belongsTo(NguoiDung, { foreignKey: 'ma_nguoi_dung', as: 'nguoiDung' });
+// ============================================
+// 2. NguoiDung - NhanVien
+// ============================================
+NguoiDung.hasOne(NhanVien, { 
+    foreignKey: 'ma_nguoi_dung', 
+    as: 'nhanVien' 
+});
+NhanVien.belongsTo(NguoiDung, { 
+    foreignKey: 'ma_nguoi_dung', 
+    as: 'nguoiDung' 
+});
 
-// NguoiDung - Admin
-NguoiDung.hasOne(Admin, { foreignKey: 'ma_nguoi_dung', as: 'admin' });
-Admin.belongsTo(NguoiDung, { foreignKey: 'ma_nguoi_dung', as: 'nguoiDung' });
+// ============================================
+// 3. NguoiDung - Admin
+// ============================================
+NguoiDung.hasOne(Admin, { 
+    foreignKey: 'ma_nguoi_dung', 
+    as: 'admin' 
+});
+Admin.belongsTo(NguoiDung, { 
+    foreignKey: 'ma_nguoi_dung', 
+    as: 'nguoiDung' 
+});
 
-// Tour - LichKhoiHanh
-Tour.hasMany(LichKhoiHanh, { foreignKey: 'ma_tour', as: 'lichKhoiHanhs' });
-LichKhoiHanh.belongsTo(Tour, { foreignKey: 'ma_tour', as: 'tour' });
+// ============================================
+// 4. Tour - LichKhoiHanh
+// ============================================
+Tour.hasMany(LichKhoiHanh, { 
+    foreignKey: 'ma_tour', 
+    as: 'lichKhoiHanhs' 
+});
+LichKhoiHanh.belongsTo(Tour, { 
+    foreignKey: 'ma_tour', 
+    as: 'tour' 
+});
 
-// LichKhoiHanh - DonDatTour
-LichKhoiHanh.hasMany(DonDatTour, { foreignKey: 'ma_lich_khoi_hanh', as: 'donDatTours' });
-DonDatTour.belongsTo(LichKhoiHanh, { foreignKey: 'ma_lich_khoi_hanh', as: 'lichKhoiHanh' });
+// ============================================
+// 5. LichKhoiHanh - DonDatTour
+// ============================================
+LichKhoiHanh.hasMany(DonDatTour, { 
+    foreignKey: 'ma_lich_khoi_hanh', 
+    as: 'donDatTours' 
+});
+DonDatTour.belongsTo(LichKhoiHanh, { 
+    foreignKey: 'ma_lich_khoi_hanh', 
+    as: 'lichKhoiHanh' 
+});
 
-// NguoiDung - DonDatTour
-NguoiDung.hasMany(DonDatTour, { foreignKey: 'ma_nguoi_dung', as: 'donDatTours' });
-DonDatTour.belongsTo(NguoiDung, { foreignKey: 'ma_nguoi_dung', as: 'nguoiDung' });
+// ============================================
+// 6. NguoiDung - DonDatTour
+// ============================================
+NguoiDung.hasMany(DonDatTour, { 
+    foreignKey: 'ma_nguoi_dung', 
+    as: 'donDatTours' 
+});
+DonDatTour.belongsTo(NguoiDung, { 
+    foreignKey: 'ma_nguoi_dung', 
+    as: 'nguoiDung' 
+});
 
-// MaGiamGia - DonDatTour
-MaGiamGia.hasMany(DonDatTour, { foreignKey: 'ma_giam_gia', as: 'donDatTours' });
-DonDatTour.belongsTo(MaGiamGia, { foreignKey: 'ma_giam_gia', as: 'maGiamGia' });
+// ============================================
+// 7. MaGiamGia - DonDatTour
+// ============================================
+MaGiamGia.hasMany(DonDatTour, { 
+    foreignKey: 'ma_giam_gia', 
+    as: 'donDatTours' 
+});
+DonDatTour.belongsTo(MaGiamGia, { 
+    foreignKey: 'ma_giam_gia', 
+    as: 'maGiamGia' 
+});
 
-// DonDatTour - ThanhToan
-DonDatTour.hasOne(ThanhToan, { foreignKey: 'ma_don_hang', as: 'thanhToan' });
-ThanhToan.belongsTo(DonDatTour, { foreignKey: 'ma_don_hang', as: 'donDatTour' });
+// ============================================
+// 8. DonDatTour - ThanhToan
+// ============================================
+DonDatTour.hasOne(ThanhToan, { 
+    foreignKey: 'ma_don_hang', 
+    as: 'thanhToan' 
+});
+ThanhToan.belongsTo(DonDatTour, { 
+    foreignKey: 'ma_don_hang', 
+    as: 'donDatTour' 
+});
 
-// DonDatTour - DanhGia
-DonDatTour.hasOne(DanhGia, { foreignKey: 'ma_don_hang', as: 'danhGia' });
-DanhGia.belongsTo(DonDatTour, { foreignKey: 'ma_don_hang', as: 'donDatTour' });
+// ============================================
+// 9. DonDatTour - DanhGia
+// ============================================
+DonDatTour.hasOne(DanhGia, { 
+    foreignKey: 'ma_don_hang', 
+    as: 'danhGia' 
+});
+DanhGia.belongsTo(DonDatTour, { 
+    foreignKey: 'ma_don_hang', 
+    as: 'donDatTour' 
+});
 
-// NguoiDung - DanhGia
-NguoiDung.hasMany(DanhGia, { foreignKey: 'ma_nguoi_dung', as: 'danhGias' });
-DanhGia.belongsTo(NguoiDung, { foreignKey: 'ma_nguoi_dung', as: 'nguoiDung' });
+// ============================================
+// 10. NguoiDung - DanhGia
+// ============================================
+NguoiDung.hasMany(DanhGia, { 
+    foreignKey: 'ma_nguoi_dung', 
+    as: 'danhGias' 
+});
+DanhGia.belongsTo(NguoiDung, { 
+    foreignKey: 'ma_nguoi_dung', 
+    as: 'nguoiDung' 
+});
 
-// DanhGia - Tour
-DanhGia.belongsTo(Tour, { foreignKey: 'ma_tour', as: 'tour' });
-Tour.hasMany(DanhGia, { foreignKey: 'ma_tour', as: 'danhGias' });
+// ============================================
+// 11. DanhGia - Tour
+// ============================================
+DanhGia.belongsTo(Tour, { 
+    foreignKey: 'ma_tour', 
+    as: 'tour' 
+});
+Tour.hasMany(DanhGia, { 
+    foreignKey: 'ma_tour', 
+    as: 'danhGias' 
+});
 
-// NhanVien - DonDatTour
-NhanVien.hasMany(DonDatTour, { foreignKey: 'ma_nhan_vien_phu_trach', as: 'donDatToursPhuTrach' });
-DonDatTour.belongsTo(NhanVien, { foreignKey: 'ma_nhan_vien_phu_trach', as: 'nhanVienPhuTrach' });
+// ============================================
+// 12. NhanVien - DonDatTour
+// ============================================
+NhanVien.hasMany(DonDatTour, { 
+    foreignKey: 'ma_nhan_vien_phu_trach', 
+    as: 'donDatToursPhuTrach' 
+});
+DonDatTour.belongsTo(NhanVien, { 
+    foreignKey: 'ma_nhan_vien_phu_trach', 
+    as: 'nhanVienPhuTrach' 
+});
 
-// NguoiDung - KhachHangMaGiamGia
-NguoiDung.hasMany(KhachHangMaGiamGia, { foreignKey: 'ma_nguoi_dung', as: 'khachHangMaGiamGias' });
-KhachHangMaGiamGia.belongsTo(NguoiDung, { foreignKey: 'ma_nguoi_dung', as: 'nguoiDung' });
+// ============================================
+// 13. ⭐ KHACH_HANG_MA_GIAM_GIA - NguoiDung
+// ============================================
+NguoiDung.hasMany(KhachHangMaGiamGia, { 
+    foreignKey: 'ma_nguoi_dung', 
+    as: 'khachHangMaGiamGias' 
+});
+KhachHangMaGiamGia.belongsTo(NguoiDung, { 
+    foreignKey: 'ma_nguoi_dung', 
+    as: 'nguoiDung' 
+});
 
-// MaGiamGia - KhachHangMaGiamGia
-MaGiamGia.hasMany(KhachHangMaGiamGia, { foreignKey: 'ma_giam_gia', as: 'khachHangMaGiamGias' });
-KhachHangMaGiamGia.belongsTo(MaGiamGia, { foreignKey: 'ma_giam_gia', as: 'maGiamGia' });
+// ============================================
+// 14. ⭐ KHACH_HANG_MA_GIAM_GIA - MaGiamGia
+// ============================================
+MaGiamGia.hasMany(KhachHangMaGiamGia, { 
+    foreignKey: 'ma_giam_gia', 
+    as: 'khachHangMaGiamGias' 
+});
+KhachHangMaGiamGia.belongsTo(MaGiamGia, { 
+    foreignKey: 'ma_giam_gia', 
+    as: 'maGiamGia' 
+});
 
+// ============================================
+// 15. OTP - (Không có quan hệ đặc biệt)
+// ============================================
+// OTP là bảng độc lập, chỉ lưu mã xác thực tạm thời
+
+// ============================================
+// 16. RefreshToken - NguoiDung
+// ============================================
+NguoiDung.hasMany(RefreshToken, { 
+    foreignKey: 'ma_nguoi_dung', 
+    as: 'refreshTokens' 
+});
+RefreshToken.belongsTo(NguoiDung, { 
+    foreignKey: 'ma_nguoi_dung', 
+    as: 'nguoiDung' 
+});
+
+// ============================================
+// EXPORT TẤT CẢ MODEL
+// ============================================
 export {
-  sequelize,
-  VaiTro,
-  NguoiDung,
-  NhanVien,
-  Admin,
-  Tour,
-  LichKhoiHanh,
-  DonDatTour,
-  ThanhToan,
-  DanhGia,
-  MaGiamGia,
-  OTP,
-  RefreshToken,
-  KhachHangMaGiamGia
+    sequelize,
+    VaiTro,
+    NguoiDung,
+    NhanVien,
+    Admin,
+    Tour,
+    LichKhoiHanh,
+    DonDatTour,
+    ThanhToan,
+    DanhGia,
+    MaGiamGia,
+    OTP,
+    RefreshToken,
+    KhachHangMaGiamGia
 };
 
 ===== FILE: D:\DoAn\LuanVan\Test2\tour-booking-system\backend\src\models\KhachHangMaGiamGia.js =====
@@ -22615,6 +22748,7 @@ export const changePassword = async (req, res) => {
 };
 
 ===== FILE: D:\DoAn\LuanVan\Test2\tour-booking-system\backend\src\controllers\bookingController.js =====
+// backend/src/controllers/bookingController.js
 import {
     DonDatTour,
     LichKhoiHanh,
@@ -22624,7 +22758,8 @@ import {
     MaGiamGia,
     ThanhToan,
     VaiTro,
-    DanhGia
+    DanhGia,
+    KhachHangMaGiamGia
 } from '../models/index.js';
 import { 
     sendBookingConfirmation, 
@@ -22749,7 +22884,7 @@ export const getMyBookings = async (req, res) => {
 };
 
 // ============================================
-// TẠO ĐƠN ĐẶT TOUR MỚI
+// TẠO ĐƠN ĐẶT TOUR MỚI (SỬA LỖI MÃ GIẢM GIÁ)
 // ============================================
 export const createBooking = async (req, res) => {
     const transaction = await DonDatTour.sequelize.transaction();
@@ -22766,6 +22901,7 @@ export const createBooking = async (req, res) => {
 
         const ma_nguoi_dung = req.user.ma_nguoi_dung;
 
+        // Kiểm tra đơn hàng tồn tại
         const existingBooking = await DonDatTour.findOne({
             where: {
                 ma_nguoi_dung,
@@ -22787,6 +22923,7 @@ export const createBooking = async (req, res) => {
             });
         }
 
+        // Kiểm tra lịch khởi hành
         const schedule = await LichKhoiHanh.findByPk(ma_lich_khoi_hanh, {
             include: [{ model: Tour, as: 'tour' }],
             transaction
@@ -22804,6 +22941,7 @@ export const createBooking = async (req, res) => {
 
         const totalGuests = parseInt(so_luong_nguoi_lon) + parseInt(so_luong_tre_em || 0);
         
+        // Khóa bản ghi để tránh tranh chấp
         const [results] = await DonDatTour.sequelize.query(
             `SELECT so_chot_toi_da, so_chot_da_dat 
              FROM lich_khoi_hanh 
@@ -22829,6 +22967,8 @@ export const createBooking = async (req, res) => {
         let tienCoc = tongTien * 0.3;
 
         let maGiamGiaInfo = null;
+
+        // ⭐ XỬ LÝ MÃ GIẢM GIÁ
         if (ma_giam_gia) {
             maGiamGiaInfo = await MaGiamGia.findByPk(ma_giam_gia, { transaction });
             
@@ -22857,6 +22997,7 @@ export const createBooking = async (req, res) => {
             }
         }
 
+        // Tạo đơn hàng
         const booking = await DonDatTour.create({
             ma_nguoi_dung,
             ma_lich_khoi_hanh,
@@ -22874,6 +23015,7 @@ export const createBooking = async (req, res) => {
             hoan_tien: 'Chưa yêu cầu'
         }, { transaction });
 
+        // Cập nhật số chỗ
         await LichKhoiHanh.update(
             { 
                 so_chot_da_dat: currentSchedule.so_chot_da_dat + totalGuests,
@@ -22881,27 +23023,26 @@ export const createBooking = async (req, res) => {
             },
             { where: { ma_lich_khoi_hanh }, transaction }
         );
-// backend/src/controllers/bookingController.js
-// ⭐ THÊM VÀO SAU KHI TẠO ĐƠN HÀNG THÀNH CÔNG
 
-// Sau khi tạo booking thành công, nếu có mã giảm giá thì đánh dấu đã sử dụng
-if (maGiamGiaInfo) {
-  await MaGiamGia.update(
-    { so_luong_da_dung: maGiamGiaInfo.so_luong_da_dung + 1 },
-    { where: { ma_giam_gia }, transaction }
-  );
-  
-  // ⭐ ĐÁNH DẤU MÃ GIẢM GIÁ ĐÃ ĐƯỢC SỬ DỤNG CHO KHÁCH HÀNG
-  try {
-    const { markDiscountUsed } = await import('./discountController.js');
-    await markDiscountUsed(ma_nguoi_dung, ma_giam_gia);
-  } catch (error) {
-    console.log('⚠️ Không thể đánh dấu mã giảm giá đã sử dụng:', error.message);
-  }
-}
+        // ⭐ XỬ LÝ MÃ GIẢM GIÁ - CHỈ ĐÁNH DẤU ĐÃ SỬ DỤNG, KHÔNG GIẢM SỐ LƯỢNG
+        if (maGiamGiaInfo) {
+            // ⭐ ĐÁNH DẤU ĐÃ SỬ DỤNG TRONG BẢNG TRUNG GIAN
+            try {
+                // Import hàm từ discountController
+                const { markDiscountUsed } = await import('./discountController.js');
+                await markDiscountUsed(ma_nguoi_dung, ma_giam_gia);
+                console.log('✅ Đã đánh dấu mã giảm giá đã sử dụng cho khách hàng');
+            } catch (error) {
+                console.log('⚠️ Không thể đánh dấu mã giảm giá đã sử dụng:', error.message);
+            }
+            
+            // ⭐ KHÔNG GIẢM SỐ LƯỢNG Ở ĐÂY
+            // Số lượng sẽ được giảm khi Admin xác nhận đơn hàng
+        }
 
         await transaction.commit();
 
+        // Gửi email xác nhận
         try {
             const user = await NguoiDung.findByPk(ma_nguoi_dung);
             const tour = await Tour.findByPk(schedule.ma_tour);
@@ -22982,6 +23123,7 @@ export const getBookingDetail = async (req, res) => {
             });
         }
 
+        // Kiểm tra quyền
         if (req.user.ma_nguoi_dung !== booking.ma_nguoi_dung) {
             const user = await NguoiDung.findByPk(req.user.ma_nguoi_dung, {
                 include: [{ model: VaiTro, as: 'vaiTro' }]
@@ -23010,7 +23152,7 @@ export const getBookingDetail = async (req, res) => {
 };
 
 // ============================================
-// HỦY ĐƠN HÀNG (KHÁCH HÀNG) - CẬP NHẬT CƠ CHẾ HOÀN TIỀN
+// HỦY ĐƠN HÀNG (CẬP NHẬT CƠ CHẾ HOÀN TIỀN & MỞ KHÓA MÃ)
 // ============================================
 export const cancelBooking = async (req, res) => {
     const transaction = await DonDatTour.sequelize.transaction();
@@ -23086,16 +23228,14 @@ export const cancelBooking = async (req, res) => {
         console.log('📊 Days until departure:', daysUntilDeparture);
         console.log('💰 Payment status:', booking.trang_thai_thanh_toan);
 
-        // ⭐ CƠ CHẾ TÍNH HOÀN TIỀN MỚI
+        // ⭐ CƠ CHẾ TÍNH HOÀN TIỀN
         let refundPercentage = 0;
         let refundLabel = 'Không hoàn tiền';
         let soTienHoanLai = 0;
 
-        // ⭐ KIỂM TRA: CHỈ HOÀN TIỀN KHI ĐÃ THANH TOÁN
         const isPaid = booking.trang_thai_thanh_toan === 'Đã thanh toán';
 
         if (isPaid) {
-            // Đã thanh toán -> Tính hoàn tiền theo ngày
             if (daysUntilDeparture >= 7) {
                 refundPercentage = 100;
                 refundLabel = 'Hoàn 100%';
@@ -23110,7 +23250,6 @@ export const cancelBooking = async (req, res) => {
             }
             soTienHoanLai = (booking.tong_tien * refundPercentage) / 100;
         } else {
-            // ⭐ CHƯA THANH TOÁN HOẶC CHỈ ĐẶT CỌC -> KHÔNG HOÀN TIỀN
             if (booking.trang_thai_thanh_toan === 'Đã đặt cọc') {
                 refundLabel = 'Không hoàn tiền (đã đặt cọc)';
             } else {
@@ -23140,6 +23279,17 @@ export const cancelBooking = async (req, res) => {
             },
             { where: { ma_lich_khoi_hanh: schedule.ma_lich_khoi_hanh }, transaction }
         );
+
+        // ⭐ MỞ KHÓA MÃ GIẢM GIÁ NẾU ĐƠN HÀNG CHƯA XÁC NHẬN
+        if (booking.trang_thai_don_hang === 'Chờ xác nhận' && booking.ma_giam_gia) {
+            try {
+                const { markDiscountUnused } = await import('./discountController.js');
+                await markDiscountUnused(booking.ma_nguoi_dung, booking.ma_giam_gia);
+                console.log('✅ Đã mở khóa mã giảm giá cho đơn hàng chờ xác nhận');
+            } catch (error) {
+                console.log('⚠️ Không thể mở khóa mã giảm giá:', error.message);
+            }
+        }
 
         // Cập nhật thanh toán nếu có
         if (booking.trang_thai_thanh_toan !== 'Chưa thanh toán') {
@@ -23207,8 +23357,101 @@ export const cancelBooking = async (req, res) => {
         });
     }
 };
+
 // ============================================
-// KHÁCH HÀNG: YÊU CẦU HOÀN TIỀN
+// ADMIN: XÁC NHẬN ĐƠN HÀNG (GIẢM SỐ LƯỢNG MÃ GIẢM GIÁ)
+// ============================================
+export const confirmBooking = async (req, res) => {
+    const transaction = await DonDatTour.sequelize.transaction();
+
+    try {
+        const { id } = req.params;
+
+        const booking = await DonDatTour.findByPk(id, {
+            include: [
+                {
+                    model: NguoiDung,
+                    as: 'nguoiDung'
+                },
+                {
+                    model: LichKhoiHanh,
+                    as: 'lichKhoiHanh',
+                    include: [{ model: Tour, as: 'tour' }]
+                }
+            ]
+        });
+
+        if (!booking) {
+            await transaction.rollback();
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy đơn hàng'
+            });
+        }
+
+        if (booking.trang_thai_don_hang !== 'Chờ xác nhận') {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'Đơn hàng không ở trạng thái chờ xác nhận'
+            });
+        }
+
+        const nhanVien = await NhanVien.findOne({
+            where: { ma_nguoi_dung: req.user.ma_nguoi_dung },
+            transaction
+        });
+
+        await booking.update({
+            trang_thai_don_hang: 'Đã xác nhận',
+            ma_nhan_vien_phu_trach: nhanVien ? nhanVien.ma_nhan_vien : null
+        }, { transaction });
+
+        // ⭐ GIẢM SỐ LƯỢNG MÃ GIẢM GIÁ KHI XÁC NHẬN ĐƠN HÀNG
+        if (booking.ma_giam_gia) {
+            const maGiamGia = await MaGiamGia.findByPk(booking.ma_giam_gia, { transaction });
+            if (maGiamGia) {
+                await maGiamGia.update({
+                    so_luong_da_dung: maGiamGia.so_luong_da_dung + 1
+                }, { transaction });
+                console.log('✅ Đã giảm số lượng mã giảm giá khi xác nhận đơn hàng');
+            }
+        }
+
+        await transaction.commit();
+
+        try {
+            await sendBookingConfirmation(booking.nguoiDung.email, {
+                ma_don_hang: booking.ma_don_hang,
+                ten_tour: booking.lichKhoiHanh.tour.ten_tour,
+                ngay_khoi_hanh: booking.lichKhoiHanh.ngay_khoi_hanh,
+                so_luong_nguoi_lon: booking.so_luong_nguoi_lon,
+                so_luong_tre_em: booking.so_luong_tre_em,
+                tong_tien: booking.tong_tien,
+                trang_thai_thanh_toan: booking.trang_thai_thanh_toan
+            });
+        } catch (emailError) {
+            console.log('⚠️ Email không gửi được');
+        }
+
+        res.json({
+            success: true,
+            message: 'Xác nhận đơn hàng thành công',
+            data: booking
+        });
+    } catch (error) {
+        if (transaction && transaction.finished === undefined) {
+            await transaction.rollback();
+        }
+        console.error('Confirm booking error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi xác nhận đơn hàng: ' + error.message
+        });
+    }
+};
+// ============================================
+// KHÁCH HÀNG: YÊU CẦU HOÀN TIỀN (SỬA LỖI)
 // ============================================
 export const requestRefund = async (req, res) => {
     try {
@@ -23226,7 +23469,10 @@ export const requestRefund = async (req, res) => {
 
         const ma_nguoi_dung = req.user.ma_nguoi_dung;
 
-        console.log('📝 requestRefund - Order ID:', ma_don_hang);
+        console.log('========================================');
+        console.log('📝 REQUEST REFUND - Order ID:', ma_don_hang);
+        console.log('📝 Method:', phuong_thuc);
+        console.log('========================================');
 
         const booking = await DonDatTour.findByPk(ma_don_hang, {
             include: [
@@ -23264,10 +23510,25 @@ export const requestRefund = async (req, res) => {
             });
         }
 
-        if (booking.hoan_tien && booking.hoan_tien !== 'Chưa yêu cầu') {
+        // ⭐ KIỂM TRA TRẠNG THÁI HOÀN TIỀN
+        if (booking.hoan_tien && booking.hoan_tien === 'Đã yêu cầu') {
             return res.status(400).json({
                 success: false,
-                message: 'Bạn đã gửi yêu cầu hoàn tiền cho đơn hàng này'
+                message: 'Bạn đã gửi yêu cầu hoàn tiền cho đơn hàng này, vui lòng chờ xử lý'
+            });
+        }
+
+        if (booking.hoan_tien && booking.hoan_tien === 'Đã hoàn') {
+            return res.status(400).json({
+                success: false,
+                message: 'Đơn hàng này đã được hoàn tiền'
+            });
+        }
+
+        if (booking.hoan_tien && booking.hoan_tien === 'Từ chối') {
+            return res.status(400).json({
+                success: false,
+                message: 'Yêu cầu hoàn tiền của bạn đã bị từ chối. Vui lòng liên hệ hỗ trợ để biết thêm chi tiết.'
             });
         }
 
@@ -23278,20 +23539,27 @@ export const requestRefund = async (req, res) => {
             });
         }
 
+        // ⭐ LƯU THÔNG TIN YÊU CẦU HOÀN TIỀN
+        const thongTinHoanTien = {
+            phuong_thuc,
+            ten_ngan_hang: ten_ngan_hang || null,
+            so_tai_khoan: so_tai_khoan || null,
+            chu_tai_khoan: chu_tai_khoan || null,
+            chi_nhanh: chi_nhanh || null,
+            so_dien_thoai: so_dien_thoai || null,
+            ghi_chu: ghi_chu || null,
+            ngay_yeu_cau: new Date().toISOString()
+        };
+
+        // ⭐ CẬP NHẬT TRẠNG THÁI -> Đã yêu cầu
         await booking.update({
             hoan_tien: 'Đã yêu cầu',
-            thong_tin_hoan_tien: {
-                phuong_thuc,
-                ten_ngan_hang: ten_ngan_hang || null,
-                so_tai_khoan: so_tai_khoan || null,
-                chu_tai_khoan: chu_tai_khoan || null,
-                chi_nhanh: chi_nhanh || null,
-                so_dien_thoai,
-                ghi_chu: ghi_chu || null,
-                ngay_yeu_cau: new Date().toISOString()
-            }
+            thong_tin_hoan_tien: thongTinHoanTien
         });
 
+        console.log('✅ Updated refund status to: Đã yêu cầu');
+
+        // Gửi email xác nhận
         try {
             await sendRefundRequestEmail(booking.nguoiDung.email, {
                 ma_don_hang: booking.ma_don_hang,
@@ -23300,6 +23568,7 @@ export const requestRefund = async (req, res) => {
                 phuong_thuc: phuong_thuc === 'chuyen_khoan' ? 'Chuyển khoản ngân hàng' : 'Tiền mặt tại văn phòng',
                 ngay_yeu_cau: new Date()
             });
+            console.log('✅ Email sent to customer');
         } catch (emailError) {
             console.log('⚠️ Email không gửi được:', emailError.message);
         }
@@ -23311,7 +23580,7 @@ export const requestRefund = async (req, res) => {
                 ma_don_hang,
                 so_tien_hoan: booking.so_tien_hoan || 0,
                 phuong_thuc,
-                trang_thai: 'Đang xử lý',
+                trang_thai: 'Đã yêu cầu',
                 ngay_yeu_cau: new Date().toISOString()
             }
         });
@@ -23324,7 +23593,6 @@ export const requestRefund = async (req, res) => {
         });
     }
 };
-
 // ============================================
 // TẢI VÉ ĐIỆN TỬ (PDF)
 // ============================================
@@ -23401,6 +23669,92 @@ export const downloadVoucher = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Lỗi tải vé điện tử: ' + error.message
+        });
+    }
+};
+
+// ============================================
+// KHÁCH HÀNG: XÁC NHẬN THANH TOÁN TẠI VĂN PHÒNG
+// ============================================
+export const confirmOfflinePayment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const ma_nguoi_dung = req.user.ma_nguoi_dung;
+
+        console.log('📝 confirmOfflinePayment - Order ID:', id);
+
+        const booking = await DonDatTour.findByPk(id, {
+            include: [
+                {
+                    model: LichKhoiHanh,
+                    as: 'lichKhoiHanh',
+                    include: [{ model: Tour, as: 'tour' }]
+                },
+                {
+                    model: NguoiDung,
+                    as: 'nguoiDung',
+                    attributes: ['ho_ten', 'email', 'so_dien_thoai']
+                }
+            ]
+        });
+
+        if (!booking) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy đơn hàng'
+            });
+        }
+
+        if (booking.ma_nguoi_dung !== ma_nguoi_dung) {
+            return res.status(403).json({
+                success: false,
+                message: 'Bạn không có quyền thực hiện thao tác này'
+            });
+        }
+
+        if (booking.trang_thai_don_hang === 'Đã hủy') {
+            return res.status(400).json({
+                success: false,
+                message: 'Đơn hàng đã bị hủy, không thể thanh toán'
+            });
+        }
+
+        if (booking.trang_thai_thanh_toan === 'Đã thanh toán') {
+            return res.status(400).json({
+                success: false,
+                message: 'Đơn hàng đã được thanh toán'
+            });
+        }
+
+        const currentNote = booking.yeu_cau_dac_biet || '';
+        const offlineNote = `[KHÁCH HÀNG CHỌN THANH TOÁN TẠI VĂN PHÒNG - ${new Date().toLocaleString('vi-VN')}]`;
+        
+        await booking.update({
+            yeu_cau_dac_biet: currentNote ? `${currentNote}\n${offlineNote}` : offlineNote
+        });
+
+        res.json({
+            success: true,
+            message: 'Đã ghi nhận yêu cầu thanh toán tại văn phòng. Vui lòng đến văn phòng công ty để hoàn tất thanh toán.',
+            data: {
+                ma_don_hang: booking.ma_don_hang,
+                trang_thai_don_hang: booking.trang_thai_don_hang,
+                trang_thai_thanh_toan: booking.trang_thai_thanh_toan,
+                tong_tien: booking.tong_tien,
+                yeu_cau_dac_biet: booking.yeu_cau_dac_biet,
+                thong_tin_cong_ty: {
+                    dia_chi: '123 Đường ABC, Quận 1, TP.HCM',
+                    gio_lam_viec: 'Thứ 2 - Thứ 7 (8:00 - 17:30)',
+                    hotline: '1900 1234'
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ confirmOfflinePayment error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi ghi nhận thanh toán: ' + error.message
         });
     }
 };
@@ -23530,88 +23884,6 @@ export const getAllBookings = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Lỗi lấy danh sách đơn hàng: ' + error.message
-        });
-    }
-};
-
-// ============================================
-// ADMIN: XÁC NHẬN ĐƠN HÀNG
-// ============================================
-export const confirmBooking = async (req, res) => {
-    const transaction = await DonDatTour.sequelize.transaction();
-
-    try {
-        const { id } = req.params;
-
-        const booking = await DonDatTour.findByPk(id, {
-            include: [
-                {
-                    model: NguoiDung,
-                    as: 'nguoiDung'
-                },
-                {
-                    model: LichKhoiHanh,
-                    as: 'lichKhoiHanh',
-                    include: [{ model: Tour, as: 'tour' }]
-                }
-            ]
-        });
-
-        if (!booking) {
-            await transaction.rollback();
-            return res.status(404).json({
-                success: false,
-                message: 'Không tìm thấy đơn hàng'
-            });
-        }
-
-        if (booking.trang_thai_don_hang !== 'Chờ xác nhận') {
-            await transaction.rollback();
-            return res.status(400).json({
-                success: false,
-                message: 'Đơn hàng không ở trạng thái chờ xác nhận'
-            });
-        }
-
-        const nhanVien = await NhanVien.findOne({
-            where: { ma_nguoi_dung: req.user.ma_nguoi_dung },
-            transaction
-        });
-
-        await booking.update({
-            trang_thai_don_hang: 'Đã xác nhận',
-            ma_nhan_vien_phu_trach: nhanVien ? nhanVien.ma_nhan_vien : null
-        }, { transaction });
-
-        await transaction.commit();
-
-        try {
-            await sendBookingConfirmation(booking.nguoiDung.email, {
-                ma_don_hang: booking.ma_don_hang,
-                ten_tour: booking.lichKhoiHanh.tour.ten_tour,
-                ngay_khoi_hanh: booking.lichKhoiHanh.ngay_khoi_hanh,
-                so_luong_nguoi_lon: booking.so_luong_nguoi_lon,
-                so_luong_tre_em: booking.so_luong_tre_em,
-                tong_tien: booking.tong_tien,
-                trang_thai_thanh_toan: booking.trang_thai_thanh_toan
-            });
-        } catch (emailError) {
-            console.log('⚠️ Email không gửi được');
-        }
-
-        res.json({
-            success: true,
-            message: 'Xác nhận đơn hàng thành công',
-            data: booking
-        });
-    } catch (error) {
-        if (transaction && transaction.finished === undefined) {
-            await transaction.rollback();
-        }
-        console.error('Confirm booking error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Lỗi xác nhận đơn hàng: ' + error.message
         });
     }
 };
@@ -23852,92 +24124,6 @@ export const updateBookingByCustomer = async (req, res) => {
 };
 
 // ============================================
-// KHÁCH HÀNG: XÁC NHẬN THANH TOÁN TẠI VĂN PHÒNG
-// ============================================
-export const confirmOfflinePayment = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const ma_nguoi_dung = req.user.ma_nguoi_dung;
-
-        console.log('📝 confirmOfflinePayment - Order ID:', id);
-
-        const booking = await DonDatTour.findByPk(id, {
-            include: [
-                {
-                    model: LichKhoiHanh,
-                    as: 'lichKhoiHanh',
-                    include: [{ model: Tour, as: 'tour' }]
-                },
-                {
-                    model: NguoiDung,
-                    as: 'nguoiDung',
-                    attributes: ['ho_ten', 'email', 'so_dien_thoai']
-                }
-            ]
-        });
-
-        if (!booking) {
-            return res.status(404).json({
-                success: false,
-                message: 'Không tìm thấy đơn hàng'
-            });
-        }
-
-        if (booking.ma_nguoi_dung !== ma_nguoi_dung) {
-            return res.status(403).json({
-                success: false,
-                message: 'Bạn không có quyền thực hiện thao tác này'
-            });
-        }
-
-        if (booking.trang_thai_don_hang === 'Đã hủy') {
-            return res.status(400).json({
-                success: false,
-                message: 'Đơn hàng đã bị hủy, không thể thanh toán'
-            });
-        }
-
-        if (booking.trang_thai_thanh_toan === 'Đã thanh toán') {
-            return res.status(400).json({
-                success: false,
-                message: 'Đơn hàng đã được thanh toán'
-            });
-        }
-
-        const currentNote = booking.yeu_cau_dac_biet || '';
-        const offlineNote = `[KHÁCH HÀNG CHỌN THANH TOÁN TẠI VĂN PHÒNG - ${new Date().toLocaleString('vi-VN')}]`;
-        
-        await booking.update({
-            yeu_cau_dac_biet: currentNote ? `${currentNote}\n${offlineNote}` : offlineNote
-        });
-
-        res.json({
-            success: true,
-            message: 'Đã ghi nhận yêu cầu thanh toán tại văn phòng. Vui lòng đến văn phòng công ty để hoàn tất thanh toán.',
-            data: {
-                ma_don_hang: booking.ma_don_hang,
-                trang_thai_don_hang: booking.trang_thai_don_hang,
-                trang_thai_thanh_toan: booking.trang_thai_thanh_toan,
-                tong_tien: booking.tong_tien,
-                yeu_cau_dac_biet: booking.yeu_cau_dac_biet,
-                thong_tin_cong_ty: {
-                    dia_chi: '123 Đường ABC, Quận 1, TP.HCM',
-                    gio_lam_viec: 'Thứ 2 - Thứ 7 (8:00 - 17:30)',
-                    hotline: '1900 1234'
-                }
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ confirmOfflinePayment error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Lỗi ghi nhận thanh toán: ' + error.message
-        });
-    }
-};
-
-// ============================================
 // ADMIN: LẤY DANH SÁCH YÊU CẦU HOÀN TIỀN
 // ============================================
 export const getRefundRequests = async (req, res) => {
@@ -23948,14 +24134,16 @@ export const getRefundRequests = async (req, res) => {
         const where = {
             trang_thai_don_hang: 'Đã hủy',
             hoan_tien: {
-                [Op.ne]: 'Chưa yêu cầu'
+                [Op.ne]: 'Chưa yêu cầu'  // Lấy tất cả trừ Chưa yêu cầu
             }
         };
 
+        // ⭐ LỌC THEO STATUS - HỖ TRỢ CẢ 'Từ chối'
         if (status) {
             where.hoan_tien = status;
         }
 
+        // ⭐ TÌM KIẾM
         if (search) {
             where[Op.or] = [
                 { '$nguoiDung.ho_ten$': { [Op.like]: `%${search}%` } },
@@ -23963,6 +24151,9 @@ export const getRefundRequests = async (req, res) => {
                 { ma_don_hang: { [Op.like]: `%${search}%` } }
             ];
         }
+
+        // ⭐ THÊM LOG ĐỂ DEBUG
+        console.log('📊 getRefundRequests - where:', JSON.stringify(where, null, 2));
 
         const refunds = await DonDatTour.findAndCountAll({
             where,
@@ -24002,6 +24193,7 @@ export const getRefundRequests = async (req, res) => {
             offset: parseInt(offset)
         });
 
+        // ⭐ THỐNG KÊ
         const totalRefundAmount = await DonDatTour.sum('so_tien_hoan', {
             where: {
                 trang_thai_don_hang: 'Đã hủy',
@@ -24015,6 +24207,10 @@ export const getRefundRequests = async (req, res) => {
                 hoan_tien: 'Đã yêu cầu'
             }
         });
+
+        // ⭐ LOG KẾT QUẢ
+        console.log('📊 getRefundRequests - found:', refunds.count);
+        console.log('📊 getRefundRequests - statuses:', refunds.rows.map(r => r.hoan_tien));
 
         res.json({
             success: true,
@@ -24039,15 +24235,22 @@ export const getRefundRequests = async (req, res) => {
         });
     }
 };
-
 // ============================================
-// ADMIN: XEM CHI TIẾT YÊU CẦU HOÀN TIỀN
+// ADMIN: XEM CHI TIẾT YÊU CẦU HOÀN TIỀN (SỬA LỖI)
 // ============================================
 export const getRefundDetail = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const refund = await DonDatTour.findByPk(id, {
+        // ⭐ KIỂM TRA ID HỢP LỆ
+        if (!id || isNaN(parseInt(id))) {
+            return res.status(400).json({
+                success: false,
+                message: 'ID đơn hàng không hợp lệ'
+            });
+        }
+
+        const refund = await DonDatTour.findByPk(parseInt(id), {
             attributes: [
                 'ma_don_hang',
                 'ma_nguoi_dung',
@@ -24064,7 +24267,7 @@ export const getRefundDetail = async (req, res) => {
                 {
                     model: NguoiDung,
                     as: 'nguoiDung',
-                    attributes: ['ho_ten', 'email', 'so_dien_thoai', 'anh_dai_dien']
+                    attributes: ['ma_nguoi_dung', 'ho_ten', 'email', 'so_dien_thoai', 'anh_dai_dien']
                 },
                 {
                     model: LichKhoiHanh,
@@ -24074,14 +24277,14 @@ export const getRefundDetail = async (req, res) => {
                         { 
                             model: Tour, 
                             as: 'tour',
-                            attributes: ['ten_tour', 'diem_den', 'so_ngay']
+                            attributes: ['ma_tour', 'ten_tour', 'diem_den', 'so_ngay']
                         }
                     ]
                 },
                 {
                     model: ThanhToan,
                     as: 'thanhToan',
-                    attributes: ['ma_thanh_toan', 'so_tien', 'phuong_thuc', 'ma_giao_dich', 'ngay_thanh_toan']
+                    attributes: ['ma_thanh_toan', 'so_tien', 'phuong_thuc', 'ma_giao_dich', 'ngay_thanh_toan', 'trang_thai']
                 }
             ]
         });
@@ -24093,16 +24296,56 @@ export const getRefundDetail = async (req, res) => {
             });
         }
 
-        if (refund.trang_thai_don_hang !== 'Đã hủy' || !refund.thong_tin_hoan_tien) {
+        // ⭐ KIỂM TRA ĐIỀU KIỆN HOÀN TIỀN
+        if (refund.trang_thai_don_hang !== 'Đã hủy') {
+            return res.status(400).json({
+                success: false,
+                message: 'Đơn hàng chưa được hủy, không có yêu cầu hoàn tiền'
+            });
+        }
+
+        // ⭐ KIỂM TRA NẾU CHƯA CÓ YÊU CẦU HOÀN TIỀN
+        if (!refund.thong_tin_hoan_tien) {
             return res.status(400).json({
                 success: false,
                 message: 'Đơn hàng này chưa có yêu cầu hoàn tiền'
             });
         }
 
+        // ⭐ CHUYỂN ĐỔI DỮ LIỆU JSON ĐỂ HIỂN THỊ ĐẦY ĐỦ
+        const refundData = refund.toJSON();
+        
+        // ⭐ ĐẢM BẢO thong_tin_hoan_tien LÀ OBJECT
+        if (typeof refundData.thong_tin_hoan_tien === 'string') {
+            try {
+                refundData.thong_tin_hoan_tien = JSON.parse(refundData.thong_tin_hoan_tien);
+            } catch (e) {
+                refundData.thong_tin_hoan_tien = {};
+            }
+        }
+
+        // ⭐ THÊM THÔNG TIN BỔ SUNG CHO DỄ HIỂN THỊ
+        if (refundData.thong_tin_hoan_tien) {
+            if (refundData.thong_tin_hoan_tien.phuong_thuc === 'chuyen_khoan') {
+                refundData.thong_tin_hoan_tien.phuong_thuc_label = 'Chuyển khoản ngân hàng';
+            } else if (refundData.thong_tin_hoan_tien.phuong_thuc === 'tien_mat') {
+                refundData.thong_tin_hoan_tien.phuong_thuc_label = 'Tiền mặt tại văn phòng';
+            } else {
+                refundData.thong_tin_hoan_tien.phuong_thuc_label = refundData.thong_tin_hoan_tien.phuong_thuc || 'Chưa xác định';
+            }
+        }
+
+        // ⭐ LOG ĐỂ DEBUG
+        console.log('📊 Refund detail response:', {
+            ma_don_hang: refundData.ma_don_hang,
+            hoan_tien: refundData.hoan_tien,
+            so_tien_hoan: refundData.so_tien_hoan,
+            thong_tin_hoan_tien: refundData.thong_tin_hoan_tien
+        });
+
         res.json({
             success: true,
-            data: refund
+            data: refundData
         });
     } catch (error) {
         console.error('Get refund detail error:', error);
@@ -24112,7 +24355,6 @@ export const getRefundDetail = async (req, res) => {
         });
     }
 };
-
 // ============================================
 // ADMIN: XÁC NHẬN HOÀN TIỀN
 // ============================================
@@ -24122,6 +24364,11 @@ export const approveRefund = async (req, res) => {
     try {
         const { id } = req.params;
         const { ghi_chu_admin } = req.body;
+
+        console.log('========================================');
+        console.log('📝 APPROVE REFUND - Order ID:', id);
+        console.log('📝 Note:', ghi_chu_admin);
+        console.log('========================================');
 
         const booking = await DonDatTour.findByPk(id, {
             include: [
@@ -24162,13 +24409,17 @@ export const approveRefund = async (req, res) => {
             });
         }
 
+        // ⭐ LƯU THÔNG TIN DUYỆT
+        const currentRefundInfo = booking.thong_tin_hoan_tien || {};
+        
         const thongTinHoanTien = {
-            ...booking.thong_tin_hoan_tien,
+            ...currentRefundInfo,
             duyet_bởi: req.user.ma_nguoi_dung,
             ngay_duyet: new Date().toISOString(),
             ghi_chu_admin: ghi_chu_admin || null
         };
 
+        // ⭐ CẬP NHẬT TRẠNG THÁI -> Đã hoàn
         await booking.update({
             hoan_tien: 'Đã hoàn',
             thong_tin_hoan_tien: thongTinHoanTien
@@ -24194,6 +24445,8 @@ export const approveRefund = async (req, res) => {
 
         await transaction.commit();
 
+        console.log('✅ Updated refund status to: Đã hoàn');
+
         try {
             await sendRefundApprovedEmail(booking.nguoiDung.email, {
                 ma_don_hang: booking.ma_don_hang,
@@ -24201,6 +24454,7 @@ export const approveRefund = async (req, res) => {
                 so_tien: booking.so_tien_hoan,
                 phuong_thuc: booking.thong_tin_hoan_tien?.phuong_thuc || 'Chuyển khoản'
             });
+            console.log('✅ Email sent to customer');
         } catch (emailError) {
             console.log('⚠️ Email không gửi được:', emailError.message);
         }
@@ -24220,16 +24474,15 @@ export const approveRefund = async (req, res) => {
         if (transaction && transaction.finished === undefined) {
             await transaction.rollback();
         }
-        console.error('Approve refund error:', error);
+        console.error('❌ Approve refund error:', error);
         res.status(500).json({
             success: false,
             message: 'Lỗi xác nhận hoàn tiền: ' + error.message
         });
     }
 };
-
 // ============================================
-// ADMIN: TỪ CHỐI HOÀN TIỀN
+// ADMIN: TỪ CHỐI HOÀN TIỀN (SỬA LỖI - BẢN FULL)
 // ============================================
 export const rejectRefund = async (req, res) => {
     const transaction = await DonDatTour.sequelize.transaction();
@@ -24238,14 +24491,31 @@ export const rejectRefund = async (req, res) => {
         const { id } = req.params;
         const { ly_do_tu_choi } = req.body;
 
-        if (!ly_do_tu_choi) {
+        console.log('========================================');
+        console.log('📝 REJECT REFUND - Order ID:', id);
+        console.log('📝 Reason:', ly_do_tu_choi);
+        console.log('========================================');
+
+        // ⭐ KIỂM TRA ID HỢP LỆ
+        if (!id || isNaN(parseInt(id))) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'ID đơn hàng không hợp lệ'
+            });
+        }
+
+        // ⭐ KIỂM TRA LÝ DO TỪ CHỐI
+        if (!ly_do_tu_choi || !ly_do_tu_choi.trim()) {
+            await transaction.rollback();
             return res.status(400).json({
                 success: false,
                 message: 'Vui lòng nhập lý do từ chối'
             });
         }
 
-        const booking = await DonDatTour.findByPk(id, {
+        // ⭐ LẤY ĐƠN HÀNG VỚI TRANSACTION
+        const booking = await DonDatTour.findByPk(parseInt(id), {
             include: [
                 {
                     model: NguoiDung,
@@ -24257,7 +24527,8 @@ export const rejectRefund = async (req, res) => {
                     as: 'lichKhoiHanh',
                     include: [{ model: Tour, as: 'tour' }]
                 }
-            ]
+            ],
+            transaction
         });
 
         if (!booking) {
@@ -24268,6 +24539,15 @@ export const rejectRefund = async (req, res) => {
             });
         }
 
+        console.log('📊 Current booking status:', {
+            ma_don_hang: booking.ma_don_hang,
+            trang_thai_don_hang: booking.trang_thai_don_hang,
+            hoan_tien: booking.hoan_tien,
+            so_tien_hoan: booking.so_tien_hoan,
+            thong_tin_hoan_tien: booking.thong_tin_hoan_tien
+        });
+
+        // ⭐ KIỂM TRA ĐƠN HÀNG ĐÃ HỦY CHƯA
         if (booking.trang_thai_don_hang !== 'Đã hủy') {
             await transaction.rollback();
             return res.status(400).json({
@@ -24276,35 +24556,128 @@ export const rejectRefund = async (req, res) => {
             });
         }
 
+        // ⭐ KIỂM TRA TRẠNG THÁI HOÀN TIỀN
+        if (booking.hoan_tien === 'Từ chối') {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'Đơn hàng này đã bị từ chối trước đó'
+            });
+        }
+
+        if (booking.hoan_tien === 'Đã hoàn') {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'Đơn hàng này đã được hoàn tiền'
+            });
+        }
+
         if (booking.hoan_tien !== 'Đã yêu cầu') {
             await transaction.rollback();
             return res.status(400).json({
                 success: false,
-                message: 'Đơn hàng này chưa có yêu cầu hoàn tiền hoặc đã được xử lý'
+                message: 'Đơn hàng này chưa có yêu cầu hoàn tiền'
             });
         }
 
+        // ⭐ LƯU SỐ TIỀN YÊU CẦU BAN ĐẦU VÀO thong_tin_hoan_tien
+        const soTienYeuCau = parseFloat(booking.so_tien_hoan || 0);
+        
+        // Lấy thông tin hiện tại
+        let currentRefundInfo = {};
+        if (booking.thong_tin_hoan_tien) {
+            try {
+                currentRefundInfo = typeof booking.thong_tin_hoan_tien === 'string' 
+                    ? JSON.parse(booking.thong_tin_hoan_tien) 
+                    : booking.thong_tin_hoan_tien;
+            } catch (e) {
+                currentRefundInfo = {};
+            }
+        }
+        
         const thongTinHoanTien = {
-            ...booking.thong_tin_hoan_tien,
+            // ⭐ GIỮ NGUYÊN THÔNG TIN CŨ
+            phuong_thuc: currentRefundInfo.phuong_thuc || 'chuyen_khoan',
+            ten_ngan_hang: currentRefundInfo.ten_ngan_hang || null,
+            so_tai_khoan: currentRefundInfo.so_tai_khoan || null,
+            chu_tai_khoan: currentRefundInfo.chu_tai_khoan || null,
+            chi_nhanh: currentRefundInfo.chi_nhanh || null,
+            so_dien_thoai: currentRefundInfo.so_dien_thoai || null,
+            ghi_chu: currentRefundInfo.ghi_chu || null,
+            ngay_yeu_cau: currentRefundInfo.ngay_yeu_cau || new Date().toISOString(),
+            // ⭐ LƯU SỐ TIỀN YÊU CẦU BAN ĐẦU
+            so_tien_yeu_cau: soTienYeuCau,
+            // ⭐ THÊM THÔNG TIN TỪ CHỐI
             tu_choi_bởi: req.user.ma_nguoi_dung,
             ngay_tu_choi: new Date().toISOString(),
-            ly_do_tu_choi: ly_do_tu_choi
+            ly_do_tu_choi: ly_do_tu_choi.trim()
         };
 
+        console.log('📊 Refund info to save:', thongTinHoanTien);
+
+        // ⭐ CẬP NHẬT ĐƠN HÀNG - SET so_tien_hoan = 0 NHƯNG ĐÃ LƯU SỐ TIỀN YÊU CẦU VÀO JSON
         await booking.update({
             hoan_tien: 'Từ chối',
             thong_tin_hoan_tien: thongTinHoanTien,
             so_tien_hoan: 0
         }, { transaction });
 
+        // ⭐ LOG SAU KHI CẬP NHẬT
+        console.log('✅ Updated booking:', {
+            ma_don_hang: booking.ma_don_hang,
+            hoan_tien: 'Từ chối',
+            so_tien_hoan: 0,
+            thong_tin_hoan_tien: thongTinHoanTien
+        });
+
+        // ⭐ CẬP NHẬT THANH TOÁN NẾU CÓ
+        const thanhToan = await ThanhToan.findOne({
+            where: { ma_don_hang: booking.ma_don_hang },
+            order: [['ngay_tao', 'DESC']],
+            transaction
+        });
+
+        if (thanhToan) {
+            await thanhToan.update({
+                trang_thai: 'Đã hủy',
+                thong_tin: {
+                    ...thanhToan.thong_tin,
+                    refund_rejected_at: new Date().toISOString(),
+                    refund_rejected_by: req.user.ma_nguoi_dung,
+                    refund_reject_reason: ly_do_tu_choi.trim()
+                }
+            }, { transaction });
+        }
+
         await transaction.commit();
 
+        // ⭐ LẤY LẠI DỮ LIỆU SAU KHI CẬP NHẬT ĐỂ TRẢ VỀ
+        const updatedBooking = await DonDatTour.findByPk(parseInt(id), {
+            include: [
+                {
+                    model: NguoiDung,
+                    as: 'nguoiDung',
+                    attributes: ['ho_ten', 'email']
+                }
+            ]
+        });
+
+        console.log('✅ Final refund status:', {
+            ma_don_hang: updatedBooking.ma_don_hang,
+            hoan_tien: updatedBooking.hoan_tien,
+            so_tien_hoan: updatedBooking.so_tien_hoan,
+            thong_tin_hoan_tien: updatedBooking.thong_tin_hoan_tien
+        });
+
+        // Gửi email thông báo từ chối
         try {
             await sendRefundRejectedEmail(booking.nguoiDung.email, {
                 ma_don_hang: booking.ma_don_hang,
-                ten_tour: booking.lichKhoiHanh.tour.ten_tour,
-                ly_do_tu_choi: ly_do_tu_choi
+                ten_tour: booking.lichKhoiHanh?.tour?.ten_tour || 'N/A',
+                ly_do_tu_choi: ly_do_tu_choi.trim()
             });
+            console.log('✅ Email sent to customer');
         } catch (emailError) {
             console.log('⚠️ Email không gửi được:', emailError.message);
         }
@@ -24314,8 +24687,11 @@ export const rejectRefund = async (req, res) => {
             message: 'Từ chối hoàn tiền thành công',
             data: {
                 ma_don_hang: booking.ma_don_hang,
-                trang_thai: 'Từ chối',
-                ly_do_tu_choi: ly_do_tu_choi
+                hoan_tien: 'Từ chối',
+                so_tien_hoan: 0,
+                so_tien_yeu_cau: soTienYeuCau,
+                ly_do_tu_choi: ly_do_tu_choi.trim(),
+                ngay_tu_choi: new Date().toISOString()
             }
         });
 
@@ -24323,14 +24699,13 @@ export const rejectRefund = async (req, res) => {
         if (transaction && transaction.finished === undefined) {
             await transaction.rollback();
         }
-        console.error('Reject refund error:', error);
+        console.error('❌ Reject refund error:', error);
         res.status(500).json({
             success: false,
             message: 'Lỗi từ chối hoàn tiền: ' + error.message
         });
     }
 };
-
 // ============================================
 // ADMIN: THỐNG KÊ HOÀN TIỀN
 // ============================================
@@ -24798,7 +25173,7 @@ export const createDiscount = async (req, res) => {
       ngay_ket_thuc,
       ap_dung_cho_tour,
       yeu_cau_toi_thieu,
-      loai_ma // ⭐ THÊM TRƯỜNG NÀY
+      loai_ma
     } = req.body;
 
     // Kiểm tra mã code đã tồn tại
@@ -24824,7 +25199,7 @@ export const createDiscount = async (req, res) => {
       ngay_ket_thuc: new Date(ngay_ket_thuc),
       ap_dung_cho_tour: ap_dung_cho_tour || null,
       yeu_cau_toi_thieu: parseInt(yeu_cau_toi_thieu) || 1,
-      loai_ma: loai_ma || 'public', // ⭐ MẶC ĐỊNH LÀ PUBLIC
+      loai_ma: loai_ma || 'public',
       trang_thai: 'Đang hoạt động'
     });
 
@@ -24929,7 +25304,7 @@ export const updateDiscount = async (req, res) => {
       ngay_ket_thuc,
       ap_dung_cho_tour,
       yeu_cau_toi_thieu,
-      loai_ma, // ⭐ THÊM TRƯỜNG NÀY
+      loai_ma,
       trang_thai
     } = req.body;
 
@@ -24952,7 +25327,7 @@ export const updateDiscount = async (req, res) => {
       ngay_ket_thuc: ngay_ket_thuc ? new Date(ngay_ket_thuc) : discount.ngay_ket_thuc,
       ap_dung_cho_tour: ap_dung_cho_tour || discount.ap_dung_cho_tour,
       yeu_cau_toi_thieu: yeu_cau_toi_thieu ? parseInt(yeu_cau_toi_thieu) : discount.yeu_cau_toi_thieu,
-      loai_ma: loai_ma || discount.loai_ma, // ⭐ THÊM
+      loai_ma: loai_ma || discount.loai_ma,
       trang_thai: trang_thai || discount.trang_thai
     });
 
@@ -25001,11 +25376,8 @@ export const deleteDiscount = async (req, res) => {
   }
 };
 
-// backend/src/controllers/discountController.js
-// ⭐ SỬA HÀM validateDiscount
-
 // ============================================
-// PUBLIC: XÁC THỰC MÃ GIẢM GIÁ (KHI ĐẶT TOUR)
+// ⭐ PUBLIC: XÁC THỰC MÃ GIẢM GIÁ (SỬA LỖI)
 // ============================================
 export const validateDiscount = async (req, res) => {
   try {
@@ -25029,7 +25401,7 @@ export const validateDiscount = async (req, res) => {
       });
     }
 
-    // Kiểm tra hiệu lực
+    // Kiểm tra hiệu lực cơ bản
     if (!discount.kiemTraHieuLuc()) {
       let message = 'Mã giảm giá không hợp lệ';
       if (discount.trang_thai === 'Đã hết') message = 'Mã giảm giá đã hết lượt sử dụng';
@@ -25042,15 +25414,15 @@ export const validateDiscount = async (req, res) => {
       });
     }
 
-    // ⭐ KIỂM TRA MÃ ĐÃ ĐƯỢC SỬ DỤNG TRONG ĐƠN HÀNG NÀO CHƯA
+    // ⭐ KIỂM TRA MÃ ĐÃ ĐƯỢC SỬ DỤNG - PHÂN BIỆT TRẠNG THÁI ĐƠN HÀNG
     if (req.user) {
-      // ⭐ KIỂM TRA MÃ ĐÃ ĐƯỢC SỬ DỤNG TRONG ĐƠN HÀNG THÀNH CÔNG (KHÔNG PHẢI ĐÃ HỦY)
+      // ⭐ KIỂM TRA MÃ ĐÃ ĐƯỢC SỬ DỤNG TRONG ĐƠN HÀNG ĐÃ XÁC NHẬN/HOÀN THÀNH
       const usedInBooking = await DonDatTour.findOne({
         where: {
           ma_nguoi_dung: req.user.ma_nguoi_dung,
           ma_giam_gia: discount.ma_giam_gia,
           trang_thai_don_hang: {
-            [Op.notIn]: ['Đã hủy'] // ⭐ KHÔNG TÍNH ĐƠN ĐÃ HỦY
+            [Op.in]: ['Đã xác nhận', 'Đang diễn ra', 'Đã hoàn thành']
           }
         }
       });
@@ -25058,8 +25430,22 @@ export const validateDiscount = async (req, res) => {
       if (usedInBooking) {
         return res.status(400).json({
           success: false,
-          message: '❌ Bạn đã sử dụng mã giảm giá này cho đơn hàng khác. Mỗi mã chỉ được sử dụng một lần.'
+          message: '❌ Bạn đã sử dụng mã giảm giá này cho đơn hàng đã được xác nhận. Mỗi mã chỉ được sử dụng một lần.'
         });
+      }
+
+      // ⭐ KIỂM TRA ĐƠN HÀNG ĐANG CHỜ XÁC NHẬN - VẪN CÒN HIỆU LỰC
+      const pendingBooking = await DonDatTour.findOne({
+        where: {
+          ma_nguoi_dung: req.user.ma_nguoi_dung,
+          ma_giam_gia: discount.ma_giam_gia,
+          trang_thai_don_hang: 'Chờ xác nhận'
+        }
+      });
+
+      if (pendingBooking) {
+        // ⭐ CHO PHÉP SỬ DỤNG LẠI VÌ ĐƠN CHƯA XÁC NHẬN
+        console.log('ℹ️ Đơn hàng đang chờ xác nhận, cho phép sử dụng lại mã');
       }
 
       // ⭐ KIỂM TRA MÃ ĐÃ ĐƯỢC SỬ DỤNG TRONG BẢNG KHACH_HANG_MA_GIAM_GIA
@@ -25067,15 +25453,32 @@ export const validateDiscount = async (req, res) => {
         where: {
           ma_nguoi_dung: req.user.ma_nguoi_dung,
           ma_giam_gia: discount.ma_giam_gia,
-          da_su_dung: true // ⭐ ĐÃ SỬ DỤNG
+          da_su_dung: true
         }
       });
 
-      if (usedInMyDiscounts) {
-        return res.status(400).json({
-          success: false,
-          message: '❌ Mã giảm giá này đã được sử dụng. Mỗi mã chỉ được sử dụng một lần.'
+      // ⭐ NẾU ĐÃ ĐÁNH DẤU SỬ DỤNG NHƯNG KHÔNG CÓ ĐƠN NÀO ĐANG CHỜ HOẶC XÁC NHẬN -> KHÓA
+      if (usedInMyDiscounts && !pendingBooking) {
+        // ⭐ KIỂM TRA XEM ĐƠN HÀNG NÀO ĐÃ DÙNG MÃ NÀY NHƯNG ĐÃ HỦY
+        const cancelledBooking = await DonDatTour.findOne({
+          where: {
+            ma_nguoi_dung: req.user.ma_nguoi_dung,
+            ma_giam_gia: discount.ma_giam_gia,
+            trang_thai_don_hang: 'Đã hủy'
+          }
         });
+
+        // ⭐ NẾU ĐƠN ĐÃ HỦY VÀ CHƯA CÓ ĐƠN MỚI -> CHO PHÉP DÙNG LẠI
+        if (cancelledBooking) {
+          console.log('ℹ️ Đơn hàng đã hủy, mở khóa mã cho khách hàng');
+          // ⭐ MỞ KHÓA MÃ
+          await markDiscountUnused(req.user.ma_nguoi_dung, discount.ma_giam_gia);
+        } else {
+          return res.status(400).json({
+            success: false,
+            message: '❌ Mã giảm giá này đã được sử dụng. Mỗi mã chỉ được sử dụng một lần.'
+          });
+        }
       }
 
       // ⭐ NẾU LÀ MÃ PRIVATE, KIỂM TRA ĐÃ ĐƯỢC GỬI CHƯA
@@ -25084,7 +25487,7 @@ export const validateDiscount = async (req, res) => {
           where: {
             ma_nguoi_dung: req.user.ma_nguoi_dung,
             ma_giam_gia: discount.ma_giam_gia,
-            da_su_dung: false // ⭐ CHƯA SỬ DỤNG
+            da_su_dung: false
           }
         });
 
@@ -25150,7 +25553,7 @@ export const getPublicDiscounts = async (req, res) => {
 
     const where = {
       trang_thai: 'Đang hoạt động',
-      loai_ma: 'public', // ⭐ CHỈ LẤY MÃ CÔNG KHAI
+      loai_ma: 'public',
       ngay_bat_dau: { [Op.lte]: now },
       ngay_ket_thuc: { [Op.gte]: now },
       so_luong: { [Op.gt]: sequelize.col('so_luong_da_dung') }
@@ -25178,7 +25581,7 @@ export const getPublicDiscounts = async (req, res) => {
         'ngay_ket_thuc',
         'yeu_cau_toi_thieu',
         'ap_dung_cho_tour',
-        'loai_ma' // ⭐ THÊM
+        'loai_ma'
       ],
       order: [['ngay_tao', 'DESC']],
       limit: parseInt(limit),
@@ -25222,7 +25625,7 @@ export const getPublicDiscountDetail = async (req, res) => {
       where: {
         ma_giam_gia: id,
         trang_thai: 'Đang hoạt động',
-        loai_ma: 'public', // ⭐ CHỈ PUBLIC
+        loai_ma: 'public',
         ngay_bat_dau: { [Op.lte]: now },
         ngay_ket_thuc: { [Op.gte]: now },
         so_luong: { [Op.gt]: sequelize.col('so_luong_da_dung') }
@@ -25285,7 +25688,6 @@ export const getPublicDiscountDetail = async (req, res) => {
 
 // ============================================
 // ⭐ LẤY DANH SÁCH MÃ GIẢM GIÁ CỦA KHÁCH HÀNG
-// (CẢ PUBLIC ĐÃ GỬI + PRIVATE ĐÃ GỬI)
 // ============================================
 export const getMyDiscounts = async (req, res) => {
   try {
@@ -25325,7 +25727,7 @@ export const getMyDiscounts = async (req, res) => {
         ma_giam_gia: item.ma_giam_gia,
         da_su_dung: item.da_su_dung,
         ngay_nhan: item.ngay_nhan,
-        loai_ma: item.maGiamGia.loai_ma, // ⭐ THÊM
+        loai_ma: item.maGiamGia.loai_ma,
         ma_code: item.maGiamGia.ma_code,
         ten_chuong_trinh: item.maGiamGia.ten_chuong_trinh,
         loai_giam: item.maGiamGia.loai_giam,
@@ -25365,17 +25767,89 @@ export const markDiscountUsed = async (ma_nguoi_dung, ma_giam_gia) => {
         da_su_dung: true,
         ngay_su_dung: new Date()
       });
+      console.log(`✅ Đã đánh dấu mã ${ma_giam_gia} đã sử dụng cho khách hàng ${ma_nguoi_dung}`);
       return true;
     }
+    
+    // ⭐ NẾU KHÔNG TÌM THẤY BẢN GHI CHƯA SỬ DỤNG, TẠO MỚI
+    const existingRecord = await KhachHangMaGiamGia.findOne({
+      where: {
+        ma_nguoi_dung: ma_nguoi_dung,
+        ma_giam_gia: ma_giam_gia
+      }
+    });
+
+    if (!existingRecord) {
+      await KhachHangMaGiamGia.create({
+        ma_nguoi_dung: ma_nguoi_dung,
+        ma_giam_gia: ma_giam_gia,
+        da_su_dung: true,
+        ngay_nhan: new Date(),
+        ngay_su_dung: new Date()
+      });
+      console.log(`✅ Đã tạo và đánh dấu mã ${ma_giam_gia} đã sử dụng cho khách hàng ${ma_nguoi_dung}`);
+      return true;
+    }
+    
     return false;
   } catch (error) {
-    console.error('Mark discount used error:', error);
+    console.error('❌ Mark discount used error:', error);
     return false;
   }
 };
 
 // ============================================
-// ⭐ GỬI MÃ GIẢM GIÁ CHO KHÁCH HÀNG (TỪ ADMIN)
+// ⭐ ĐÁNH DẤU CHƯA SỬ DỤNG MÃ GIẢM GIÁ KHI HỦY ĐƠN
+// ============================================
+export const markDiscountUnused = async (ma_nguoi_dung, ma_giam_gia) => {
+  try {
+    const record = await KhachHangMaGiamGia.findOne({
+      where: {
+        ma_nguoi_dung: ma_nguoi_dung,
+        ma_giam_gia: ma_giam_gia,
+        da_su_dung: true
+      }
+    });
+
+    if (record) {
+      await record.update({
+        da_su_dung: false,
+        ngay_su_dung: null
+      });
+      console.log(`✅ Đã mở khóa mã ${ma_giam_gia} cho khách hàng ${ma_nguoi_dung}`);
+      return true;
+    }
+    
+    // ⭐ NẾU KHÔNG TÌM THẤY BẢN GHI ĐÃ SỬ DỤNG, KIỂM TRA BẢN GHI CHƯA SỬ DỤNG
+    const unusedRecord = await KhachHangMaGiamGia.findOne({
+      where: {
+        ma_nguoi_dung: ma_nguoi_dung,
+        ma_giam_gia: ma_giam_gia,
+        da_su_dung: false
+      }
+    });
+
+    if (!unusedRecord) {
+      // ⭐ NẾU KHÔNG CÓ BẢN GHI NÀO, TẠO MỚI
+      await KhachHangMaGiamGia.create({
+        ma_nguoi_dung: ma_nguoi_dung,
+        ma_giam_gia: ma_giam_gia,
+        da_su_dung: false,
+        ngay_nhan: new Date()
+      });
+      console.log(`✅ Đã tạo bản ghi mã ${ma_giam_gia} chưa sử dụng cho khách hàng ${ma_nguoi_dung}`);
+      return true;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Mark discount unused error:', error);
+    return false;
+  }
+};
+
+// ============================================
+// ⭐ GỬI MÃ GIẢM GIÁ CHO KHÁCH HÀNG
 // ============================================
 export const sendDiscountToCustomers = async (req, res) => {
   try {
@@ -25460,14 +25934,12 @@ export const sendDiscountToCustomers = async (req, res) => {
       });
     }
 
-    // ⭐ CHỈ LƯU KHI LÀ MÃ PRIVATE
     const isPrivate = discount.loai_ma === 'private';
     let savedCount = 0;
     let emailSentCount = 0;
     let failedEmails = [];
 
     for (const customer of customers) {
-      // ⭐ NẾU LÀ MÃ PRIVATE, LƯU VÀO BẢNG TRUNG GIAN
       if (isPrivate) {
         const existing = await KhachHangMaGiamGia.findOne({
           where: {
@@ -25488,7 +25960,6 @@ export const sendDiscountToCustomers = async (req, res) => {
         }
       }
 
-      // Gửi email (cho cả public và private)
       try {
         await sendDiscountEmail(customer.email, {
           ho_ten: customer.ho_ten,
@@ -25499,7 +25970,7 @@ export const sendDiscountToCustomers = async (req, res) => {
           giam_toi_da: discount.giam_toi_da,
           ngay_ket_thuc: discount.ngay_ket_thuc,
           yeu_cau_toi_thieu: discount.yeu_cau_toi_thieu,
-          loai_ma: discount.loai_ma // ⭐ THÊM
+          loai_ma: discount.loai_ma
         });
         emailSentCount++;
       } catch (error) {
@@ -25517,7 +25988,7 @@ export const sendDiscountToCustomers = async (req, res) => {
         email_sent: emailSentCount,
         failed_emails: failedEmails,
         discount_code: discount.ma_code,
-        loai_ma: discount.loai_ma, // ⭐ THÊM
+        loai_ma: discount.loai_ma,
         discount: discount
       }
     });
@@ -25531,6 +26002,7 @@ export const sendDiscountToCustomers = async (req, res) => {
 };
 
 ===== FILE: D:\DoAn\LuanVan\Test2\tour-booking-system\backend\src\controllers\paymentController.js =====
+// backend/src/controllers/paymentController.js
 import { DonDatTour, ThanhToan, LichKhoiHanh, Tour, NguoiDung, VaiTro } from '../models/index.js';
 import { createVNPayPayment as createVNPayPaymentService, verifyVNPayReturn } from '../utils/vnpayService.js';
 import { sendPaymentConfirmation } from '../utils/emailService.js';
@@ -25540,12 +26012,14 @@ import { sendPaymentConfirmation } from '../utils/emailService.js';
 // ============================================
 export const createVNPayPayment = async (req, res) => {
     try {
-        const { ma_don_hang, phuong_thuc_thanh_toan, qr_code } = req.body;
+        const { ma_don_hang, phuong_thuc_thanh_toan, qr_code, so_tien, is_additional } = req.body;
 
         console.log('========================================');
         console.log('💳 Creating VNPay payment');
         console.log('📦 Order ID:', ma_don_hang);
         console.log('📦 Payment method:', phuong_thuc_thanh_toan);
+        console.log('📦 Amount:', so_tien);
+        console.log('📦 Is additional payment:', is_additional);
         console.log('========================================');
 
         if (!process.env.VNP_TMN_CODE || !process.env.VNP_HASH_SECRET) {
@@ -25595,9 +26069,34 @@ export const createVNPayPayment = async (req, res) => {
         }
 
         let soTienCanThanhToan;
-        if (phuong_thuc_thanh_toan === 'coc') {
+
+        // ⭐ KIỂM TRA NẾU LÀ THANH TOÁN BỔ SUNG
+        if (is_additional && so_tien) {
+            // ⭐ THANH TOÁN BỔ SUNG - LẤY SỐ TIỀN TỪ REQUEST
+            soTienCanThanhToan = parseFloat(so_tien);
+            
+            // ⭐ KIỂM TRA SỐ TIỀN KHÔNG VƯỢT QUÁ TIỀN CÒN LẠI
+            const tienConLai = parseFloat(booking.tien_con_lai || 0);
+            if (soTienCanThanhToan > tienConLai) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Số tiền thanh toán (${soTienCanThanhToan}) vượt quá số tiền còn lại (${tienConLai})`
+                });
+            }
+            
+            // ⭐ NẾU THANH TOÁN ĐÚNG BẰNG TIỀN CÒN LẠI -> CẬP NHẬT THÀNH ĐÃ THANH TOÁN
+            if (Math.abs(soTienCanThanhToan - tienConLai) < 0.01) {
+                // Thanh toán đủ số tiền còn lại
+                await booking.update({
+                    trang_thai_thanh_toan: 'Đã thanh toán',
+                    tien_con_lai: 0
+                });
+            }
+        } else if (phuong_thuc_thanh_toan === 'coc') {
+            // ⭐ THANH TOÁN ĐẶT CỌC
             soTienCanThanhToan = parseFloat(booking.tien_coc);
         } else if (phuong_thuc_thanh_toan === 'full') {
+            // ⭐ THANH TOÁN TOÀN BỘ
             soTienCanThanhToan = parseFloat(booking.tong_tien);
         } else {
             return res.status(400).json({
@@ -25613,7 +26112,7 @@ export const createVNPayPayment = async (req, res) => {
             });
         }
 
-        console.log('💰 Amount:', soTienCanThanhToan);
+        console.log('💰 Amount to pay:', soTienCanThanhToan);
 
         // ⭐ TẠO MÃ GIAO DỊCH DUY NHẤT CHO VNPAY
         const txnRef = `${ma_don_hang}_${Date.now()}`;
@@ -25644,7 +26143,9 @@ export const createVNPayPayment = async (req, res) => {
             thong_tin: {
                 ...paymentResult.vnp_Params,
                 qr_code: qr_code || false,
-                txn_ref: txnRef
+                txn_ref: txnRef,
+                is_additional: is_additional || false,
+                payment_method: phuong_thuc_thanh_toan
             }
         });
 
@@ -25658,7 +26159,8 @@ export const createVNPayPayment = async (req, res) => {
                 ma_don_hang: booking.ma_don_hang,
                 so_tien: soTienCanThanhToan,
                 is_qr: qr_code || false,
-                txn_ref: txnRef
+                txn_ref: txnRef,
+                is_additional: is_additional || false
             }
         });
 
@@ -25720,12 +26222,14 @@ export const handleVNPayIPN = async (req, res) => {
             const soTienDaThanhToan = parseInt(vnp_Amount) / 100;
             console.log('💰 IPN - Amount paid:', soTienDaThanhToan);
 
+            // ⭐ LẤY THÔNG TIN THANH TOÁN ĐỂ BIẾT LÀ THANH TOÁN BỔ SUNG HAY KHÔNG
             let thanhToan = await ThanhToan.findOne({
-                where: { ma_don_hang: ma_don_hang },
+                where: { ma_don_hang: ma_don_hang, ma_giao_dich: vnp_TxnRef },
                 order: [['ngay_tao', 'DESC']]
             });
 
             if (!thanhToan) {
+                // ⭐ NẾU KHÔNG TÌM THẤY, TẠO MỚI
                 thanhToan = await ThanhToan.create({
                     ma_don_hang: ma_don_hang,
                     so_tien: soTienDaThanhToan,
@@ -25752,21 +26256,48 @@ export const handleVNPayIPN = async (req, res) => {
                 console.log('✅ IPN: Updated payment record');
             }
 
+            // ⭐ KIỂM TRA XEM LÀ THANH TOÁN BỔ SUNG HAY KHÔNG
+            const isAdditional = thanhToan.thong_tin?.is_additional || false;
+            const currentTienConLai = parseFloat(booking.tien_con_lai || 0);
+
             let trangThaiThanhToan = 'Đã thanh toán';
             let trangThaiDonHang = 'Đã xác nhận';
-            
-            if (soTienDaThanhToan < booking.tong_tien) {
-                trangThaiThanhToan = 'Đã đặt cọc';
-                trangThaiDonHang = 'Chờ xác nhận';
+            let tienConLaiMoi = 0;
+
+            if (isAdditional) {
+                // ⭐ THANH TOÁN BỔ SUNG - CẬP NHẬT TIỀN CÒN LẠI
+                tienConLaiMoi = currentTienConLai - soTienDaThanhToan;
+                
+                if (tienConLaiMoi > 0) {
+                    trangThaiThanhToan = 'Đã đặt cọc';
+                    trangThaiDonHang = 'Đã xác nhận';
+                } else {
+                    trangThaiThanhToan = 'Đã thanh toán';
+                    trangThaiDonHang = 'Đã xác nhận';
+                    tienConLaiMoi = 0;
+                }
+            } else {
+                // ⭐ THANH TOÁN LẦN ĐẦU
+                if (soTienDaThanhToan < booking.tong_tien) {
+                    trangThaiThanhToan = 'Đã đặt cọc';
+                    trangThaiDonHang = 'Chờ xác nhận';
+                    tienConLaiMoi = booking.tong_tien - soTienDaThanhToan;
+                } else {
+                    trangThaiThanhToan = 'Đã thanh toán';
+                    trangThaiDonHang = 'Đã xác nhận';
+                    tienConLaiMoi = 0;
+                }
             }
 
             await booking.update({
                 trang_thai_thanh_toan: trangThaiThanhToan,
-                tien_con_lai: booking.tong_tien - soTienDaThanhToan,
+                tien_con_lai: tienConLaiMoi,
                 trang_thai_don_hang: trangThaiDonHang
             });
 
             console.log(`✅ IPN: Order ${ma_don_hang} updated successfully!`);
+            console.log(`   - Status: ${trangThaiThanhToan}`);
+            console.log(`   - Remaining: ${tienConLaiMoi}`);
 
             try {
                 await sendPaymentConfirmation(booking.nguoiDung.email, {
@@ -25868,20 +26399,64 @@ export const handleVNPayReturn = async (req, res) => {
                 const soTien = parseInt(vnp_Amount) / 100;
                 console.log('💰 Order total:', booking.tong_tien);
                 console.log('💰 Paid amount:', soTien);
+                console.log('💰 Current remaining:', booking.tien_con_lai);
                 
-                const trangThaiThanhToan = soTien >= booking.tong_tien ? 'Đã thanh toán' : 'Đã đặt cọc';
+                // ⭐ KIỂM TRA XEM CÓ PHẢI THANH TOÁN BỔ SUNG KHÔNG
+                // Bằng cách kiểm tra số tiền đã thanh toán + số tiền đã trả trước đó
+                const thanhToanCu = await ThanhToan.findOne({
+                    where: { ma_don_hang: ma_don_hang },
+                    order: [['ngay_tao', 'DESC']]
+                });
+
+                const isAdditional = thanhToanCu?.thong_tin?.is_additional || false;
+                const tienDaThanhToanTruoc = parseFloat(booking.tong_tien) - parseFloat(booking.tien_con_lai || 0);
+                
+                console.log('💰 Previous paid:', tienDaThanhToanTruoc);
+                console.log('💰 Is additional:', isAdditional);
+                
+                let trangThaiThanhToan = 'Đã thanh toán';
+                let trangThaiDonHang = 'Đã xác nhận';
+                let tienConLai = 0;
+
+                if (isAdditional || tienDaThanhToanTruoc > 0) {
+                    // ⭐ THANH TOÁN BỔ SUNG - CẬP NHẬT TIỀN CÒN LẠI
+                    tienConLai = parseFloat(booking.tien_con_lai || 0) - soTien;
+                    
+                    if (tienConLai > 0) {
+                        trangThaiThanhToan = 'Đã đặt cọc';
+                        trangThaiDonHang = 'Đã xác nhận';
+                    } else {
+                        trangThaiThanhToan = 'Đã thanh toán';
+                        trangThaiDonHang = 'Đã xác nhận';
+                        tienConLai = 0;
+                    }
+                } else {
+                    // ⭐ THANH TOÁN LẦN ĐẦU
+                    if (soTien >= parseFloat(booking.tong_tien)) {
+                        trangThaiThanhToan = 'Đã thanh toán';
+                        trangThaiDonHang = 'Đã xác nhận';
+                        tienConLai = 0;
+                    } else {
+                        trangThaiThanhToan = 'Đã đặt cọc';
+                        trangThaiDonHang = 'Chờ xác nhận';
+                        tienConLai = parseFloat(booking.tong_tien) - soTien;
+                    }
+                }
                 
                 await booking.update({
                     trang_thai_thanh_toan: trangThaiThanhToan,
-                    trang_thai_don_hang: 'Đã xác nhận',
-                    tien_con_lai: booking.tong_tien - soTien
+                    trang_thai_don_hang: trangThaiDonHang,
+                    tien_con_lai: tienConLai
                 });
                 
-                console.log(`✅ Updated order ${ma_don_hang} to ${trangThaiThanhToan}`);
+                console.log(`✅ Updated order ${ma_don_hang}:`);
+                console.log(`   - Payment status: ${trangThaiThanhToan}`);
+                console.log(`   - Order status: ${trangThaiDonHang}`);
+                console.log(`   - Remaining: ${tienConLai}`);
                 
                 // Tạo hoặc cập nhật payment record
                 let thanhToan = await ThanhToan.findOne({
-                    where: { ma_don_hang: ma_don_hang },
+                    where: { ma_don_hang: ma_don_hang, ma_giao_dich: vnp_TxnRef },
                     order: [['ngay_tao', 'DESC']]
                 });
 
@@ -25895,7 +26470,8 @@ export const handleVNPayReturn = async (req, res) => {
                         ngay_thanh_toan: new Date(vnp_PayDate),
                         thong_tin: {
                             return_response: queryParams,
-                            return_processed_at: new Date().toISOString()
+                            return_processed_at: new Date().toISOString(),
+                            is_additional: isAdditional || tienDaThanhToanTruoc > 0
                         }
                     });
                     console.log('✅ Created payment record');
@@ -25906,7 +26482,8 @@ export const handleVNPayReturn = async (req, res) => {
                         thong_tin: {
                             ...thanhToan.thong_tin,
                             return_response: queryParams,
-                            return_processed_at: new Date().toISOString()
+                            return_processed_at: new Date().toISOString(),
+                            is_additional: isAdditional || tienDaThanhToanTruoc > 0
                         }
                     });
                     console.log('✅ Updated payment record');
@@ -26018,7 +26595,8 @@ export const getPaymentStatus = async (req, res) => {
                 tien_con_lai: booking.tien_con_lai || 0,
                 trang_thai_thanh_toan: booking.trang_thai_thanh_toan,
                 trang_thai_don_hang: booking.trang_thai_don_hang,
-                thanhToan: thanhToan || null
+                thanhToan: thanhToan || null,
+                so_tien_da_thanh_toan: parseFloat(booking.tong_tien) - parseFloat(booking.tien_con_lai || 0)
             }
         });
 
@@ -54735,6 +55313,7 @@ axiosInstance.interceptors.response.use(
 export default axiosInstance;
 
 ===== FILE: D:\DoAn\LuanVan\Test2\tour-booking-system\frontend\src\api\bookings.js =====
+// frontend/src/api/bookings.js
 import axios from './axios';
 
 export const bookingsAPI = {
@@ -54757,15 +55336,28 @@ export const bookingsAPI = {
     confirmBooking: (id) => axios.put(`/bookings/${id}/confirm`),
     updateBooking: (id, data) => axios.put(`/bookings/${id}`, data),
 
-    // ============================================
-// THÊM VÀO bookingsAPI
-// ============================================
-// Admin refund routes
-getRefundRequests: (params) => axios.get('/bookings/refunds', { params }),
-getRefundDetail: (id) => axios.get(`/bookings/refunds/${id}`),
-approveRefund: (id, data) => axios.put(`/bookings/refunds/${id}/approve`, data),
-rejectRefund: (id, data) => axios.put(`/bookings/refunds/${id}/reject`, data),
-getRefundStats: (params) => axios.get('/bookings/refunds/stats', { params }),
+    // ⭐ ADMIN REFUND ROUTES
+    getRefundRequests: (params) => {
+        console.log('📤 Fetching refund requests with params:', params);
+        return axios.get('/bookings/refunds', { params });
+    },
+    
+    getRefundDetail: (id) => {
+        console.log('📤 Fetching refund detail for:', id);
+        return axios.get(`/bookings/refunds/${id}`);
+    },
+    
+    approveRefund: (id, data) => {
+        console.log('📤 Approving refund:', { id, data });
+        return axios.put(`/bookings/refunds/${id}/approve`, data);
+    },
+    
+    rejectRefund: (id, data) => {
+        console.log('📤 Rejecting refund:', { id, data });
+        return axios.put(`/bookings/refunds/${id}/reject`, data);
+    },
+    
+    getRefundStats: (params) => axios.get('/bookings/refunds/stats', { params }),
 };
 
 ===== FILE: D:\DoAn\LuanVan\Test2\tour-booking-system\frontend\src\api\discounts.js =====
@@ -54793,6 +55385,7 @@ export const discountsAPI = {
 };
 
 ===== FILE: D:\DoAn\LuanVan\Test2\tour-booking-system\frontend\src\api\payments.js =====
+// frontend/src/api/payments.js
 import axios from './axios';
 
 export const paymentsAPI = {
@@ -54899,6 +55492,7 @@ export const usersAPI = {
 };
 
 ===== FILE: D:\DoAn\LuanVan\Test2\tour-booking-system\frontend\src\pages\AdminBookings.jsx =====
+// frontend/src/pages/AdminBookings.jsx
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { bookingsAPI } from '../api/bookings';
@@ -54921,8 +55515,10 @@ import {
   ChartBarIcon,
   ClockIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
+import { toast } from 'react-toastify';
 
 const AdminBookings = () => {
   const queryClient = useQueryClient();
@@ -54937,6 +55533,12 @@ const AdminBookings = () => {
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  // ⭐ STATE CHO ACTION LOADING
+  const [actionLoading, setActionLoading] = useState({
+    confirm: null,   // Lưu id đang confirm
+    cancel: null,    // Lưu id đang cancel
+  });
   
   // ⭐ FORM DATA
   const [formData, setFormData] = useState({
@@ -55062,24 +55664,24 @@ const AdminBookings = () => {
     dangDienRa: bookings.filter(b => b.trang_thai_don_hang === 'Đang diễn ra').length,
     daHoanThanh: bookings.filter(b => b.trang_thai_don_hang === 'Đã hoàn thành').length,
     daHuy: bookings.filter(b => b.trang_thai_don_hang === 'Đã hủy').length,
-    // Thống kê thanh toán
     chuaThanhToan: bookings.filter(b => b.trang_thai_thanh_toan === 'Chưa thanh toán').length,
     daDatCoc: bookings.filter(b => b.trang_thai_thanh_toan === 'Đã đặt cọc').length,
     daThanhToan: bookings.filter(b => b.trang_thai_thanh_toan === 'Đã thanh toán').length,
-    // Tổng doanh thu
     tongDoanhThu: bookings.reduce((sum, b) => sum + (b.tong_tien || 0), 0),
   };
 
-  // ⭐ MUTATIONS
+  // ⭐ MUTATIONS - CÓ TOAST THÔNG BÁO
   const confirmMutation = useMutation(
     (id) => bookingsAPI.confirmBooking(id),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['admin-bookings']);
-        alert('✅ Duyệt đơn hàng thành công!');
+        setActionLoading(prev => ({ ...prev, confirm: null }));
+        toast.success('✅ Xác nhận đơn hàng thành công!');
       },
       onError: (error) => {
-        alert(error.response?.data?.message || '❌ Duyệt đơn thất bại');
+        setActionLoading(prev => ({ ...prev, confirm: null }));
+        toast.error(error.response?.data?.message || '❌ Xác nhận đơn hàng thất bại');
       }
     }
   );
@@ -55091,10 +55693,12 @@ const AdminBookings = () => {
         queryClient.invalidateQueries(['admin-bookings']);
         setShowCancelModal(false);
         setCancelReason('');
-        alert('✅ Hủy đơn hàng thành công!');
+        setActionLoading(prev => ({ ...prev, cancel: null }));
+        toast.success('✅ Hủy đơn hàng thành công!');
       },
       onError: (error) => {
-        alert(error.response?.data?.message || '❌ Hủy đơn thất bại');
+        setActionLoading(prev => ({ ...prev, cancel: null }));
+        toast.error(error.response?.data?.message || '❌ Hủy đơn hàng thất bại');
       }
     }
   );
@@ -55105,10 +55709,10 @@ const AdminBookings = () => {
       onSuccess: () => {
         queryClient.invalidateQueries(['admin-bookings']);
         setShowEditModal(false);
-        alert('✅ Cập nhật đơn hàng thành công!');
+        toast.success('✅ Cập nhật đơn hàng thành công!');
       },
       onError: (error) => {
-        alert(error.response?.data?.message || '❌ Cập nhật đơn hàng thất bại');
+        toast.error(error.response?.data?.message || '❌ Cập nhật đơn hàng thất bại');
       }
     }
   );
@@ -55120,10 +55724,10 @@ const AdminBookings = () => {
         queryClient.invalidateQueries(['admin-bookings']);
         setShowAddModal(false);
         resetForm();
-        alert('✅ Thêm đơn hàng thành công!');
+        toast.success('✅ Thêm đơn hàng thành công!');
       },
       onError: (error) => {
-        alert(error.response?.data?.message || '❌ Thêm đơn hàng thất bại');
+        toast.error(error.response?.data?.message || '❌ Thêm đơn hàng thất bại');
       }
     }
   );
@@ -55159,17 +55763,21 @@ const AdminBookings = () => {
     }
   };
 
+  // ⭐ HANDLE CONFIRM - CÓ LOADING
   const handleConfirm = (id) => {
     if (window.confirm('Xác nhận duyệt đơn hàng này?')) {
+      setActionLoading(prev => ({ ...prev, confirm: id }));
       confirmMutation.mutate(id);
     }
   };
 
+  // ⭐ HANDLE CANCEL - CÓ LOADING
   const handleCancel = () => {
     if (!cancelReason.trim()) {
-      alert('Vui lòng nhập lý do hủy');
+      toast.warning('Vui lòng nhập lý do hủy');
       return;
     }
+    setActionLoading(prev => ({ ...prev, cancel: selectedBooking?.ma_don_hang }));
     cancelMutation.mutate({ 
       id: selectedBooking?.ma_don_hang, 
       ly_do: cancelReason 
@@ -55239,7 +55847,7 @@ const AdminBookings = () => {
 
     try {
       if (!formData.ma_lich_khoi_hanh) {
-        alert('Vui lòng chọn lịch khởi hành');
+        toast.warning('Vui lòng chọn lịch khởi hành');
         setLoading(false);
         return;
       }
@@ -55266,7 +55874,7 @@ const AdminBookings = () => {
 
       await addMutation.mutateAsync(bookingData);
     } catch (error) {
-      alert(error.message || '❌ Thêm đơn hàng thất bại');
+      toast.error(error.message || '❌ Thêm đơn hàng thất bại');
     } finally {
       setLoading(false);
     }
@@ -55278,7 +55886,7 @@ const AdminBookings = () => {
 
     try {
       if (!formData.ma_lich_khoi_hanh) {
-        alert('Vui lòng chọn lịch khởi hành');
+        toast.warning('Vui lòng chọn lịch khởi hành');
         setLoading(false);
         return;
       }
@@ -55302,10 +55910,54 @@ const AdminBookings = () => {
         data: bookingData 
       });
     } catch (error) {
-      alert(error.message || '❌ Cập nhật đơn hàng thất bại');
+      toast.error(error.message || '❌ Cập nhật đơn hàng thất bại');
     } finally {
       setLoading(false);
     }
+  };
+
+  // ⭐ RENDER BUTTON CONFIRM VỚI LOADING
+  const renderConfirmButton = (booking) => {
+    const isLoading = actionLoading.confirm === booking.ma_don_hang;
+    return (
+      <button
+        onClick={() => handleConfirm(booking.ma_don_hang)}
+        disabled={isLoading}
+        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        title="Duyệt đơn"
+      >
+        {isLoading ? (
+          <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        ) : (
+          <CheckIcon className="w-5 h-5" />
+        )}
+      </button>
+    );
+  };
+
+  // ⭐ RENDER BUTTON CANCEL VỚI LOADING
+  const renderCancelButton = (booking) => {
+    const isLoading = actionLoading.cancel === booking.ma_don_hang;
+    return (
+      <button
+        onClick={() => openCancelModal(booking)}
+        disabled={isLoading}
+        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        title="Hủy đơn"
+      >
+        {isLoading ? (
+          <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        ) : (
+          <XMarkIcon className="w-5 h-5" />
+        )}
+      </button>
+    );
   };
 
   if (isLoading) return <LoadingSpinner />;
@@ -55320,7 +55972,10 @@ const AdminBookings = () => {
             <p className="text-gray-600">Xem, xử lý và quản lý các đơn hàng</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => refetch()} className="btn-secondary">Làm mới</button>
+            <button onClick={() => refetch()} className="btn-secondary flex items-center gap-2">
+              <ArrowPathIcon className="w-4 h-4" />
+              Làm mới
+            </button>
             <button onClick={handleAdd} className="btn-primary flex items-center gap-2">
               <PlusIcon className="w-5 h-5" />
               Thêm đơn hàng
@@ -55458,14 +56113,10 @@ const AdminBookings = () => {
                               <PencilIcon className="w-5 h-5" />
                             </button>
                             {booking.trang_thai_don_hang === 'Chờ xác nhận' && (
-                              <button onClick={() => handleConfirm(booking.ma_don_hang)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg" title="Duyệt đơn">
-                                <CheckIcon className="w-5 h-5" />
-                              </button>
+                              renderConfirmButton(booking)
                             )}
                             {(booking.trang_thai_don_hang === 'Chờ xác nhận' || booking.trang_thai_don_hang === 'Đã xác nhận') && (
-                              <button onClick={() => openCancelModal(booking)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Hủy">
-                                <XMarkIcon className="w-5 h-5" />
-                              </button>
+                              renderCancelButton(booking)
                             )}
                           </div>
                         </td>
@@ -55493,7 +56144,7 @@ const AdminBookings = () => {
         </div>
       </div>
 
-      {/* ⭐ MODAL THÊM ĐƠN HÀNG */}
+      {/* ⭐ MODAL THÊM ĐƠN HÀNG - Giữ nguyên */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -55662,7 +56313,7 @@ const AdminBookings = () => {
         </div>
       )}
 
-      {/* ⭐ MODAL SỬA ĐƠN HÀNG */}
+      {/* ⭐ MODAL SỬA ĐƠN HÀNG - Giữ nguyên */}
       {showEditModal && selectedBooking && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -55805,7 +56456,7 @@ const AdminBookings = () => {
         </div>
       )}
 
-      {/* ⭐ MODAL CHI TIẾT */}
+      {/* ⭐ MODAL CHI TIẾT - Giữ nguyên */}
       {showDetailModal && selectedBooking && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -55843,7 +56494,16 @@ const AdminBookings = () => {
               </div>
               <div className="flex gap-3 pt-4">
                 {selectedBooking.trang_thai_don_hang === 'Chờ xác nhận' && (
-                  <button onClick={() => { handleConfirm(selectedBooking.ma_don_hang); setShowDetailModal(false); }} className="btn-primary">Duyệt đơn</button>
+                  <button 
+                    onClick={() => { 
+                      handleConfirm(selectedBooking.ma_don_hang); 
+                      setShowDetailModal(false); 
+                    }} 
+                    className="btn-primary"
+                    disabled={actionLoading.confirm === selectedBooking.ma_don_hang}
+                  >
+                    {actionLoading.confirm === selectedBooking.ma_don_hang ? 'Đang xử lý...' : 'Duyệt đơn'}
+                  </button>
                 )}
                 <button onClick={() => setShowDetailModal(false)} className="btn-secondary">Đóng</button>
               </div>
@@ -55852,22 +56512,37 @@ const AdminBookings = () => {
         </div>
       )}
 
-      {/* ⭐ MODAL HỦY ĐƠN */}
+      {/* ⭐ MODAL HỦY ĐƠN - CÓ LOADING */}
       {showCancelModal && selectedBooking && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-800 mb-4">Hủy đơn hàng #{selectedBooking.ma_don_hang}</h3>
-            <textarea
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              className="input-field"
-              rows="3"
-              placeholder="Nhập lý do hủy..."
-            />
-            <div className="flex gap-3 mt-4">
-              <button onClick={handleCancel} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 flex-1">Xác nhận hủy</button>
-              <button onClick={() => { setShowCancelModal(false); setCancelReason(''); }} className="btn-secondary flex-1">Hủy</button>
-            </div>
+            
+            {/* ⭐ HIỂN THỊ TRẠNG THÁI LOADING */}
+            {actionLoading.cancel === selectedBooking.ma_don_hang ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent mx-auto mb-4"></div>
+                <p className="text-gray-600">Đang xử lý hủy đơn hàng...</p>
+              </div>
+            ) : (
+              <>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  className="input-field"
+                  rows="3"
+                  placeholder="Nhập lý do hủy..."
+                />
+                <div className="flex gap-3 mt-4">
+                  <button onClick={handleCancel} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 flex-1">
+                    Xác nhận hủy
+                  </button>
+                  <button onClick={() => { setShowCancelModal(false); setCancelReason(''); }} className="btn-secondary flex-1">
+                    Hủy
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -56671,7 +57346,8 @@ const AdminDiscounts = () => {
 export default AdminDiscounts;
 
 ===== FILE: D:\DoAn\LuanVan\Test2\tour-booking-system\frontend\src\pages\AdminRefunds.jsx =====
-import React, { useState, useEffect } from 'react';
+// frontend/src/pages/AdminRefunds.jsx
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { adminAPI } from '../api/admin';
 import { bookingsAPI } from '../api/bookings';
@@ -56680,7 +57356,6 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import { formatCurrency, formatDate, formatDateTime } from '../utils/helpers';
 import { toast } from 'react-toastify';
 import {
-    EyeIcon,
     CheckIcon,
     XMarkIcon,
     ClockIcon,
@@ -56692,7 +57367,10 @@ import {
     XCircleIcon,
     CheckCircleIcon,
     MagnifyingGlassIcon,
-    ChartBarIcon
+    BuildingLibraryIcon,
+    IdentificationIcon,
+    UserCircleIcon,
+    ArrowPathIcon
 } from '@heroicons/react/24/outline';
 
 const AdminRefunds = () => {
@@ -56701,9 +57379,10 @@ const AdminRefunds = () => {
     const [filter, setFilter] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedRefund, setSelectedRefund] = useState(null);
-    const [showDetailModal, setShowDetailModal] = useState(false);
+    
     const [showApproveModal, setShowApproveModal] = useState(false);
     const [showRejectModal, setShowRejectModal] = useState(false);
+    
     const [adminNote, setAdminNote] = useState('');
     const [rejectReason, setRejectReason] = useState('');
 
@@ -56724,13 +57403,6 @@ const AdminRefunds = () => {
     const totalPages = data?.data?.data?.totalPages || 1;
     const stats = data?.data?.data?.stats || {};
 
-    // Fetch refund detail
-    const { data: detailData, refetch: refetchDetail } = useQuery(
-        ['refund-detail', selectedRefund?.ma_don_hang],
-        () => bookingsAPI.getRefundDetail(selectedRefund?.ma_don_hang),
-        { enabled: !!selectedRefund?.ma_don_hang }
-    );
-
     // Approve refund mutation
     const approveMutation = useMutation(
         ({ id, note }) => bookingsAPI.approveRefund(id, { ghi_chu_admin: note }),
@@ -56740,7 +57412,6 @@ const AdminRefunds = () => {
                 toast.success('✅ Xác nhận hoàn tiền thành công!');
                 setShowApproveModal(false);
                 setAdminNote('');
-                setShowDetailModal(false);
                 refetch();
             },
             onError: (error) => {
@@ -56758,7 +57429,6 @@ const AdminRefunds = () => {
                 toast.success('✅ Từ chối hoàn tiền thành công!');
                 setShowRejectModal(false);
                 setRejectReason('');
-                setShowDetailModal(false);
                 refetch();
             },
             onError: (error) => {
@@ -56767,39 +57437,277 @@ const AdminRefunds = () => {
         }
     );
 
-    // Get status badge
+    // ⭐ HÀM LẤY TRẠNG THÁI BADGE
     const getStatusBadge = (status) => {
         const configs = {
-            'Chưa yêu cầu': { color: 'badge-gray', icon: <ClockIcon className="w-4 h-4" /> },
-            'Đã yêu cầu': { color: 'badge-warning', icon: <ClockIcon className="w-4 h-4" /> },
-            'Đã hoàn': { color: 'badge-success', icon: <CheckCircleIcon className="w-4 h-4" /> },
-            'Từ chối': { color: 'badge-danger', icon: <XCircleIcon className="w-4 h-4" /> },
+            'Chưa yêu cầu': { color: 'badge-gray', icon: <ClockIcon className="w-4 h-4" />, label: 'Chưa yêu cầu' },
+            'Đã yêu cầu': { color: 'badge-warning', icon: <ClockIcon className="w-4 h-4" />, label: 'Đang chờ xử lý' },
+            'Đã hoàn': { color: 'badge-success', icon: <CheckCircleIcon className="w-4 h-4" />, label: 'Đã hoàn tiền' },
+            'Từ chối': { color: 'badge-danger', icon: <XCircleIcon className="w-4 h-4" />, label: 'Từ chối' },
         };
         const config = configs[status] || configs['Chưa yêu cầu'];
         return (
             <span className={`badge ${config.color} flex items-center gap-1`}>
                 {config.icon}
-                {status || 'Chưa yêu cầu'}
+                {config.label}
             </span>
         );
     };
 
-    const handleViewDetail = (refund) => {
-        setSelectedRefund(refund);
-        setShowDetailModal(true);
-        refetchDetail();
+    // ============================================
+    // ⭐ HÀM RENDER THÔNG TIN CHUYỂN KHOẢN
+    // ============================================
+    const renderBankingInfo = (thongTinHoanTien) => {
+        if (!thongTinHoanTien) return null;
+        
+        if (thongTinHoanTien.phuong_thuc === 'tien_mat') {
+            return (
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-gray-500">💵 Khách hàng chọn nhận tiền mặt tại văn phòng</p>
+                </div>
+            );
+        }
+
+        return (
+            <div className="bg-blue-50 rounded-lg p-4 space-y-3 border border-blue-200">
+                <h4 className="font-semibold text-blue-800 flex items-center gap-2">
+                    <BuildingLibraryIcon className="w-5 h-5" />
+                    Thông tin tài khoản nhận hoàn tiền
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {thongTinHoanTien.ten_ngan_hang && (
+                        <div className="bg-white rounded-lg p-3 shadow-sm">
+                            <p className="text-xs text-gray-500 flex items-center gap-1">
+                                <BuildingLibraryIcon className="w-3 h-3" />
+                                Ngân hàng
+                            </p>
+                            <p className="font-medium text-gray-800">{thongTinHoanTien.ten_ngan_hang}</p>
+                        </div>
+                    )}
+                    
+                    {thongTinHoanTien.so_tai_khoan && (
+                        <div className="bg-white rounded-lg p-3 shadow-sm">
+                            <p className="text-xs text-gray-500 flex items-center gap-1">
+                                <IdentificationIcon className="w-3 h-3" />
+                                Số tài khoản
+                            </p>
+                            <p className="font-mono font-bold text-gray-800">{thongTinHoanTien.so_tai_khoan}</p>
+                        </div>
+                    )}
+                    
+                    {thongTinHoanTien.chu_tai_khoan && (
+                        <div className="bg-white rounded-lg p-3 shadow-sm">
+                            <p className="text-xs text-gray-500 flex items-center gap-1">
+                                <UserCircleIcon className="w-3 h-3" />
+                                Chủ tài khoản
+                            </p>
+                            <p className="font-medium text-gray-800">{thongTinHoanTien.chu_tai_khoan}</p>
+                        </div>
+                    )}
+                    
+                    {thongTinHoanTien.chi_nhanh && (
+                        <div className="bg-white rounded-lg p-3 shadow-sm">
+                            <p className="text-xs text-gray-500">Chi nhánh</p>
+                            <p className="font-medium text-gray-800">{thongTinHoanTien.chi_nhanh}</p>
+                        </div>
+                    )}
+                </div>
+                
+                {thongTinHoanTien.so_dien_thoai && (
+                    <div className="bg-white rounded-lg p-3 shadow-sm">
+                        <p className="text-xs text-gray-500">📞 Số điện thoại liên hệ</p>
+                        <p className="font-medium text-gray-800">{thongTinHoanTien.so_dien_thoai}</p>
+                    </div>
+                )}
+                
+                {thongTinHoanTien.ghi_chu && (
+                    <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                        <p className="text-xs text-yellow-700">📝 Ghi chú</p>
+                        <p className="text-sm text-yellow-800">{thongTinHoanTien.ghi_chu}</p>
+                    </div>
+                )}
+
+                {thongTinHoanTien.ngay_yeu_cau && (
+                    <div className="bg-white rounded-lg p-3 shadow-sm">
+                        <p className="text-xs text-gray-500">📅 Ngày yêu cầu</p>
+                        <p className="font-medium text-gray-800">{formatDateTime(thongTinHoanTien.ngay_yeu_cau)}</p>
+                    </div>
+                )}
+
+                {thongTinHoanTien.ngay_duyet && (
+                    <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                        <p className="text-sm text-green-700 flex items-center gap-2">
+                            <CheckCircleIcon className="w-4 h-4" />
+                            <strong>Đã duyệt:</strong> {formatDateTime(thongTinHoanTien.ngay_duyet)}
+                        </p>
+                        {thongTinHoanTien.ghi_chu_admin && (
+                            <p className="text-sm text-green-600 mt-1">
+                                📝 Ghi chú: {thongTinHoanTien.ghi_chu_admin}
+                            </p>
+                        )}
+                    </div>
+                )}
+
+                {thongTinHoanTien.ngay_tu_choi && (
+                    <div className="bg-red-50 rounded-lg p-3 border border-red-200">
+                        <p className="text-sm text-red-700 flex items-center gap-2">
+                            <XCircleIcon className="w-4 h-4" />
+                            <strong>Đã từ chối:</strong> {formatDateTime(thongTinHoanTien.ngay_tu_choi)}
+                        </p>
+                        <p className="text-sm text-red-600 mt-1">
+                            📝 Lý do: {thongTinHoanTien.ly_do_tu_choi}
+                        </p>
+                    </div>
+                )}
+            </div>
+        );
     };
 
-    const handleApprove = (refund) => {
+    // ============================================
+    // ⭐ HÀM HIỂN THỊ THÔNG TIN HOÀN TIỀN - SỐ TIỀN KHÔNG GẠCH NGANG
+    // ============================================
+    const renderRefundInfo = (refundData) => {
+        if (!refundData) return null;
+        
+        const isRejected = refundData.hoan_tien === 'Từ chối';
+        const isApproved = refundData.hoan_tien === 'Đã hoàn';
+        const isPending = refundData.hoan_tien === 'Đã yêu cầu';
+        
+        return (
+            <div className={`border rounded-lg p-4 ${
+                isRejected ? 'bg-red-50 border-red-200' :
+                isApproved ? 'bg-green-50 border-green-200' :
+                isPending ? 'bg-yellow-50 border-yellow-200' :
+                'bg-gray-50'
+            }`}>
+                {/* ⭐ HEADER VỚI TRẠNG THÁI RÕ RÀNG */}
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        {isRejected ? (
+                            <XCircleIcon className="w-5 h-5 text-red-500" />
+                        ) : isApproved ? (
+                            <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                        ) : (
+                            <ClockIcon className="w-5 h-5 text-yellow-500" />
+                        )}
+                        <h3 className="font-semibold text-gray-700">
+                            {isRejected ? '❌ Từ chối hoàn tiền' :
+                             isApproved ? '✅ Đã hoàn tiền' :
+                             '⏳ Đang chờ xử lý'}
+                        </h3>
+                    </div>
+                    {getStatusBadge(refundData.hoan_tien)}
+                </div>
+                
+                {/* ⭐ THÔNG TIN SỐ TIỀN - KHÔNG GẠCH NGANG */}
+                <div className="bg-white rounded-lg p-3 mb-3 shadow-sm">
+                    <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Số tiền cần hoàn</span>
+                        <span className={`font-bold text-xl ${
+                            isRejected ? 'text-red-500' : 
+                            isApproved ? 'text-green-500' : 
+                            'text-yellow-500'
+                        }`}>
+                            {formatCurrency(refundData.so_tien_hoan)}
+                        </span>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-500 mt-1">
+                        <span>Tổng tiền đơn hàng</span>
+                        <span>{formatCurrency(refundData.tong_tien)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-500">
+                        <span>Trạng thái thanh toán</span>
+                        <span>{refundData.trang_thai_thanh_toan || 'N/A'}</span>
+                    </div>
+                </div>
+
+                {/* ⭐ THÔNG TIN NGÂN HÀNG */}
+                {renderBankingInfo(refundData.thong_tin_hoan_tien)}
+                
+                {/* ⭐ HIỂN THỊ LÝ DO TỪ CHỐI */}
+                {isRejected && refundData.thong_tin_hoan_tien?.ly_do_tu_choi && (
+                    <div className="mt-3 p-3 bg-red-100 border border-red-300 rounded-lg">
+                        <p className="text-sm font-medium text-red-700 flex items-center gap-2">
+                            <XCircleIcon className="w-4 h-4" />
+                            Lý do từ chối:
+                        </p>
+                        <p className="text-sm text-red-600 mt-1">
+                            {refundData.thong_tin_hoan_tien.ly_do_tu_choi}
+                        </p>
+                        {refundData.thong_tin_hoan_tien.ngay_tu_choi && (
+                            <p className="text-xs text-red-500 mt-1">
+                                📅 Từ chối vào: {formatDateTime(refundData.thong_tin_hoan_tien.ngay_tu_choi)}
+                            </p>
+                        )}
+                    </div>
+                )}
+                
+                {/* ⭐ HIỂN THỊ THÔNG BÁO ĐÃ HOÀN */}
+                {isApproved && refundData.thong_tin_hoan_tien?.ngay_duyet && (
+                    <div className="mt-3 p-3 bg-green-100 border border-green-300 rounded-lg">
+                        <p className="text-sm font-medium text-green-700 flex items-center gap-2">
+                            <CheckCircleIcon className="w-4 h-4" />
+                            Đã hoàn tiền vào: {formatDateTime(refundData.thong_tin_hoan_tien.ngay_duyet)}
+                        </p>
+                        {refundData.thong_tin_hoan_tien.ghi_chu_admin && (
+                            <p className="text-sm text-green-600 mt-1">
+                                📝 Ghi chú: {refundData.thong_tin_hoan_tien.ghi_chu_admin}
+                            </p>
+                        )}
+                    </div>
+                )}
+                
+                {/* ⭐ HIỂN THỊ THÔNG BÁO ĐANG CHỜ */}
+                {isPending && (
+                    <div className="mt-3 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                        <p className="text-sm font-medium text-yellow-700 flex items-center gap-2">
+                            <ClockIcon className="w-4 h-4" />
+                            Đang chờ xử lý
+                        </p>
+                        <p className="text-sm text-yellow-600 mt-1">
+                            Yêu cầu từ: {formatDateTime(refundData.ngay_cap_nhat)}
+                        </p>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    // ============================================
+    // ⭐ HANDLERS
+    // ============================================
+
+    const handleOpenApprove = (refund) => {
         setSelectedRefund(refund);
         setAdminNote('');
         setShowApproveModal(true);
     };
 
-    const handleReject = (refund) => {
+    const handleOpenReject = (refund) => {
         setSelectedRefund(refund);
         setRejectReason('');
         setShowRejectModal(true);
+    };
+
+    const handleApprove = () => {
+        if (!selectedRefund) return;
+        approveMutation.mutate({ 
+            id: selectedRefund.ma_don_hang, 
+            note: adminNote 
+        });
+    };
+
+    const handleReject = () => {
+        if (!selectedRefund) return;
+        if (!rejectReason.trim()) {
+            toast.warning('Vui lòng nhập lý do từ chối');
+            return;
+        }
+        rejectMutation.mutate({ 
+            id: selectedRefund.ma_don_hang, 
+            reason: rejectReason 
+        });
     };
 
     if (isLoading) return <LoadingSpinner />;
@@ -56814,10 +57722,7 @@ const AdminRefunds = () => {
                         <p className="text-gray-600">Xem và xử lý các yêu cầu hoàn tiền từ khách hàng</p>
                     </div>
                     <button onClick={() => refetch()} className="btn-secondary flex items-center gap-2">
-                        <svg className="w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                        <ArrowPathIcon className="w-4 h-4" />
                         Làm mới
                     </button>
                 </div>
@@ -56942,7 +57847,13 @@ const AdminRefunds = () => {
                                                     <p className="text-xs text-gray-500">{formatDate(refund.lichKhoiHanh?.ngay_khoi_hanh)}</p>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <p className="font-bold text-primary-500">{formatCurrency(refund.so_tien_hoan)}</p>
+                                                    <p className={`font-bold ${
+                                                        refund.hoan_tien === 'Từ chối' ? 'text-red-500' : 
+                                                        refund.hoan_tien === 'Đã hoàn' ? 'text-green-500' : 
+                                                        'text-primary-500'
+                                                    }`}>
+                                                        {formatCurrency(refund.so_tien_hoan)}
+                                                    </p>
                                                     <p className="text-xs text-gray-500">Tổng: {formatCurrency(refund.tong_tien)}</p>
                                                 </td>
                                                 <td className="px-6 py-4">
@@ -56963,30 +57874,26 @@ const AdminRefunds = () => {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2">
-                                                        <button
-                                                            onClick={() => handleViewDetail(refund)}
-                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                            title="Chi tiết"
-                                                        >
-                                                            <EyeIcon className="w-5 h-5" />
-                                                        </button>
                                                         {refund.hoan_tien === 'Đã yêu cầu' && (
                                                             <>
                                                                 <button
-                                                                    onClick={() => handleApprove(refund)}
+                                                                    onClick={() => handleOpenApprove(refund)}
                                                                     className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                                                                     title="Xác nhận hoàn tiền"
                                                                 >
                                                                     <CheckIcon className="w-5 h-5" />
                                                                 </button>
                                                                 <button
-                                                                    onClick={() => handleReject(refund)}
+                                                                    onClick={() => handleOpenReject(refund)}
                                                                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                                     title="Từ chối"
                                                                 >
                                                                     <XMarkIcon className="w-5 h-5" />
                                                                 </button>
                                                             </>
+                                                        )}
+                                                        {(refund.hoan_tien === 'Đã hoàn' || refund.hoan_tien === 'Từ chối') && (
+                                                            <span className="text-sm text-gray-400">Đã xử lý</span>
                                                         )}
                                                     </div>
                                                 </td>
@@ -57027,172 +57934,71 @@ const AdminRefunds = () => {
                 </div>
 
                 {/* ============================================ */}
-                {/* MODAL CHI TIẾT */}
-                {/* ============================================ */}
-                {showDetailModal && selectedRefund && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-bold text-gray-800">
-                                    Chi tiết yêu cầu hoàn tiền #{selectedRefund.ma_don_hang}
-                                </h2>
-                                <button onClick={() => setShowDetailModal(false)} className="text-gray-500 hover:text-gray-700">
-                                    <XCircleIcon className="w-6 h-6" />
-                                </button>
-                            </div>
-
-                            {detailData?.data?.data && (
-                                <div className="space-y-6">
-                                    {/* Thông tin khách hàng */}
-                                    <div className="border rounded-lg p-4">
-                                        <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                            <UserIcon className="w-5 h-5" />
-                                            Thông tin khách hàng
-                                        </h3>
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
-                                            <div>
-                                                <p className="text-gray-500">Họ tên</p>
-                                                <p className="font-medium">{detailData.data.data.nguoiDung?.ho_ten}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500">Email</p>
-                                                <p>{detailData.data.data.nguoiDung?.email}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500">Số điện thoại</p>
-                                                <p>{detailData.data.data.nguoiDung?.so_dien_thoai}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Thông tin tour */}
-                                    <div className="border rounded-lg p-4">
-                                        <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                            <CalendarIcon className="w-5 h-5" />
-                                            Thông tin tour
-                                        </h3>
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
-                                            <div>
-                                                <p className="text-gray-500">Tour</p>
-                                                <p className="font-medium">{detailData.data.data.lichKhoiHanh?.tour?.ten_tour}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500">Điểm đến</p>
-                                                <p>{detailData.data.data.lichKhoiHanh?.tour?.diem_den}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500">Ngày khởi hành</p>
-                                                <p>{formatDate(detailData.data.data.lichKhoiHanh?.ngay_khoi_hanh)}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500">Lý do hủy</p>
-                                                <p className="text-red-500">{detailData.data.data.ly_do_huy}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Thông tin hoàn tiền */}
-                                    <div className="border rounded-lg p-4 bg-yellow-50">
-                                        <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                            <BanknotesIcon className="w-5 h-5 text-green-500" />
-                                            Thông tin hoàn tiền
-                                        </h3>
-                                        <div className="space-y-2 text-sm">
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Số tiền cần hoàn</span>
-                                                <span className="font-bold text-primary-500 text-lg">
-                                                    {formatCurrency(detailData.data.data.so_tien_hoan)}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Tổng tiền đơn hàng</span>
-                                                <span>{formatCurrency(detailData.data.data.tong_tien)}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Phương thức</span>
-                                                <span>
-                                                    {detailData.data.data.thong_tin_hoan_tien?.phuong_thuc === 'chuyen_khoan' 
-                                                        ? '🏦 Chuyển khoản' 
-                                                        : '💵 Tiền mặt'}
-                                                </span>
-                                            </div>
-                                            {detailData.data.data.thong_tin_hoan_tien?.ten_ngan_hang && (
-                                                <>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-gray-600">Ngân hàng</span>
-                                                        <span>{detailData.data.data.thong_tin_hoan_tien.ten_ngan_hang}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-gray-600">Số tài khoản</span>
-                                                        <span>{detailData.data.data.thong_tin_hoan_tien.so_tai_khoan}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-gray-600">Chủ tài khoản</span>
-                                                        <span>{detailData.data.data.thong_tin_hoan_tien.chu_tai_khoan}</span>
-                                                    </div>
-                                                    {detailData.data.data.thong_tin_hoan_tien.chi_nhanh && (
-                                                        <div className="flex justify-between">
-                                                            <span className="text-gray-600">Chi nhánh</span>
-                                                            <span>{detailData.data.data.thong_tin_hoan_tien.chi_nhanh}</span>
-                                                        </div>
-                                                    )}
-                                                </>
-                                            )}
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Số điện thoại</span>
-                                                <span>{detailData.data.data.thong_tin_hoan_tien?.so_dien_thoai}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Ngày yêu cầu</span>
-                                                <span>{formatDateTime(detailData.data.data.thong_tin_hoan_tien?.ngay_yeu_cau)}</span>
-                                            </div>
-                                            <div className="flex justify-between border-t pt-2">
-                                                <span className="text-gray-600">Trạng thái</span>
-                                                {getStatusBadge(detailData.data.data.hoan_tien)}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Actions */}
-                                    {selectedRefund.hoan_tien === 'Đã yêu cầu' && (
-                                        <div className="flex gap-3 pt-4 border-t">
-                                            <button
-                                                onClick={() => { setShowDetailModal(false); handleApprove(selectedRefund); }}
-                                                className="btn-primary flex items-center gap-2 flex-1"
-                                            >
-                                                <CheckIcon className="w-5 h-5" />
-                                                Xác nhận hoàn tiền
-                                            </button>
-                                            <button
-                                                onClick={() => { setShowDetailModal(false); handleReject(selectedRefund); }}
-                                                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 flex-1 flex items-center gap-2 justify-center"
-                                            >
-                                                <XMarkIcon className="w-5 h-5" />
-                                                Từ chối
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* ============================================ */}
-                {/* MODAL XÁC NHẬN HOÀN TIỀN */}
+                {/* ⭐ MODAL XÁC NHẬN HOÀN TIỀN */}
                 {/* ============================================ */}
                 {showApproveModal && selectedRefund && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-xl max-w-md w-full p-6">
-                            <h3 className="text-xl font-bold text-gray-800 mb-4">Xác nhận hoàn tiền</h3>
+                        <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
+                            <h3 className="text-xl font-bold text-gray-800 mb-4">✅ Xác nhận hoàn tiền</h3>
+                            
                             <div className="bg-green-50 rounded-lg p-4 mb-4">
-                                <p className="text-sm text-green-700">
-                                    💰 Số tiền: <strong>{formatCurrency(selectedRefund.so_tien_hoan)}</strong>
-                                </p>
-                                <p className="text-sm text-green-600">
-                                    Khách hàng: {selectedRefund.nguoiDung?.ho_ten}
-                                </p>
+                                <div className="space-y-2">
+                                    <p className="text-sm text-green-700">
+                                        💰 Số tiền: <strong>{formatCurrency(selectedRefund.so_tien_hoan)}</strong>
+                                    </p>
+                                    <p className="text-sm text-green-600">
+                                        👤 Khách hàng: {selectedRefund.nguoiDung?.ho_ten}
+                                    </p>
+                                    <p className="text-sm text-green-600">
+                                        📅 Ngày yêu cầu: {formatDateTime(selectedRefund.ngay_cap_nhat)}
+                                    </p>
+                                    
+                                    {selectedRefund.thong_tin_hoan_tien && selectedRefund.thong_tin_hoan_tien.phuong_thuc === 'chuyen_khoan' && (
+                                        <div className="mt-3 pt-3 border-t border-green-200">
+                                            <p className="text-sm font-medium text-green-700 mb-2">🏦 Thông tin tài khoản nhận hoàn tiền:</p>
+                                            <div className="bg-white rounded-lg p-3 space-y-2 text-sm">
+                                                {selectedRefund.thong_tin_hoan_tien.ten_ngan_hang && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500">Ngân hàng:</span>
+                                                        <span className="font-medium text-gray-700">{selectedRefund.thong_tin_hoan_tien.ten_ngan_hang}</span>
+                                                    </div>
+                                                )}
+                                                {selectedRefund.thong_tin_hoan_tien.so_tai_khoan && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500">Số tài khoản:</span>
+                                                        <span className="font-mono font-bold text-gray-700">{selectedRefund.thong_tin_hoan_tien.so_tai_khoan}</span>
+                                                    </div>
+                                                )}
+                                                {selectedRefund.thong_tin_hoan_tien.chu_tai_khoan && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500">Chủ tài khoản:</span>
+                                                        <span className="font-medium text-gray-700">{selectedRefund.thong_tin_hoan_tien.chu_tai_khoan}</span>
+                                                    </div>
+                                                )}
+                                                {selectedRefund.thong_tin_hoan_tien.chi_nhanh && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500">Chi nhánh:</span>
+                                                        <span className="font-medium text-gray-700">{selectedRefund.thong_tin_hoan_tien.chi_nhanh}</span>
+                                                    </div>
+                                                )}
+                                                {selectedRefund.thong_tin_hoan_tien.so_dien_thoai && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500">SĐT liên hệ:</span>
+                                                        <span className="font-medium text-gray-700">{selectedRefund.thong_tin_hoan_tien.so_dien_thoai}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {selectedRefund.thong_tin_hoan_tien && selectedRefund.thong_tin_hoan_tien.phuong_thuc === 'tien_mat' && (
+                                        <div className="mt-3 pt-3 border-t border-green-200">
+                                            <p className="text-sm text-gray-500">💵 Khách hàng chọn nhận tiền mặt tại văn phòng</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú (không bắt buộc)</label>
                                 <textarea
@@ -57205,13 +58011,19 @@ const AdminRefunds = () => {
                             </div>
                             <div className="flex gap-3">
                                 <button
-                                    onClick={() => approveMutation.mutate({ id: selectedRefund.ma_don_hang, note: adminNote })}
+                                    onClick={handleApprove}
                                     disabled={approveMutation.isLoading}
                                     className="btn-primary flex-1 disabled:opacity-50"
                                 >
-                                    {approveMutation.isLoading ? 'Đang xử lý...' : 'Xác nhận'}
+                                    {approveMutation.isLoading ? 'Đang xử lý...' : 'Xác nhận hoàn tiền'}
                                 </button>
-                                <button onClick={() => setShowApproveModal(false)} className="btn-secondary flex-1">
+                                <button 
+                                    onClick={() => {
+                                        setShowApproveModal(false);
+                                        setSelectedRefund(null);
+                                    }} 
+                                    className="btn-secondary flex-1"
+                                >
                                     Hủy
                                 </button>
                             </div>
@@ -57220,17 +58032,74 @@ const AdminRefunds = () => {
                 )}
 
                 {/* ============================================ */}
-                {/* MODAL TỪ CHỐI HOÀN TIỀN */}
+                {/* ⭐ MODAL TỪ CHỐI HOÀN TIỀN */}
                 {/* ============================================ */}
                 {showRejectModal && selectedRefund && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-xl max-w-md w-full p-6">
-                            <h3 className="text-xl font-bold text-gray-800 mb-4">Từ chối hoàn tiền</h3>
+                        <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
+                            <h3 className="text-xl font-bold text-gray-800 mb-4">❌ Từ chối hoàn tiền</h3>
+                            
                             <div className="bg-red-50 rounded-lg p-4 mb-4">
-                                <p className="text-sm text-red-700">
-                                    ⚠️ Bạn đang từ chối hoàn tiền cho đơn hàng #{selectedRefund.ma_don_hang}
-                                </p>
+                                <div className="space-y-2">
+                                    <p className="text-sm text-red-700">
+                                        ⚠️ Bạn đang từ chối hoàn tiền cho đơn hàng #{selectedRefund.ma_don_hang}
+                                    </p>
+                                    <p className="text-sm text-red-600">
+                                        💰 Số tiền: <strong>{formatCurrency(selectedRefund.so_tien_hoan)}</strong>
+                                    </p>
+                                    <p className="text-sm text-red-600">
+                                        👤 Khách hàng: {selectedRefund.nguoiDung?.ho_ten}
+                                    </p>
+                                    <p className="text-sm text-red-600">
+                                        📅 Ngày yêu cầu: {formatDateTime(selectedRefund.ngay_cap_nhat)}
+                                    </p>
+                                    
+                                    {selectedRefund.thong_tin_hoan_tien && selectedRefund.thong_tin_hoan_tien.phuong_thuc === 'chuyen_khoan' && (
+                                        <div className="mt-3 pt-3 border-t border-red-200">
+                                            <p className="text-sm font-medium text-red-700 mb-2">🏦 Thông tin tài khoản nhận hoàn tiền:</p>
+                                            <div className="bg-white rounded-lg p-3 space-y-2 text-sm">
+                                                {selectedRefund.thong_tin_hoan_tien.ten_ngan_hang && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500">Ngân hàng:</span>
+                                                        <span className="font-medium text-gray-700">{selectedRefund.thong_tin_hoan_tien.ten_ngan_hang}</span>
+                                                    </div>
+                                                )}
+                                                {selectedRefund.thong_tin_hoan_tien.so_tai_khoan && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500">Số tài khoản:</span>
+                                                        <span className="font-mono font-bold text-gray-700">{selectedRefund.thong_tin_hoan_tien.so_tai_khoan}</span>
+                                                    </div>
+                                                )}
+                                                {selectedRefund.thong_tin_hoan_tien.chu_tai_khoan && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500">Chủ tài khoản:</span>
+                                                        <span className="font-medium text-gray-700">{selectedRefund.thong_tin_hoan_tien.chu_tai_khoan}</span>
+                                                    </div>
+                                                )}
+                                                {selectedRefund.thong_tin_hoan_tien.chi_nhanh && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500">Chi nhánh:</span>
+                                                        <span className="font-medium text-gray-700">{selectedRefund.thong_tin_hoan_tien.chi_nhanh}</span>
+                                                    </div>
+                                                )}
+                                                {selectedRefund.thong_tin_hoan_tien.so_dien_thoai && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500">SĐT liên hệ:</span>
+                                                        <span className="font-medium text-gray-700">{selectedRefund.thong_tin_hoan_tien.so_dien_thoai}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {selectedRefund.thong_tin_hoan_tien && selectedRefund.thong_tin_hoan_tien.phuong_thuc === 'tien_mat' && (
+                                        <div className="mt-3 pt-3 border-t border-red-200">
+                                            <p className="text-sm text-gray-500">💵 Khách hàng chọn nhận tiền mặt tại văn phòng</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Lý do từ chối *</label>
                                 <textarea
@@ -57243,13 +58112,19 @@ const AdminRefunds = () => {
                             </div>
                             <div className="flex gap-3">
                                 <button
-                                    onClick={() => rejectMutation.mutate({ id: selectedRefund.ma_don_hang, reason: rejectReason })}
+                                    onClick={handleReject}
                                     disabled={rejectMutation.isLoading || !rejectReason.trim()}
                                     className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 flex-1 disabled:opacity-50"
                                 >
                                     {rejectMutation.isLoading ? 'Đang xử lý...' : 'Xác nhận từ chối'}
                                 </button>
-                                <button onClick={() => setShowRejectModal(false)} className="btn-secondary flex-1">
+                                <button 
+                                    onClick={() => {
+                                        setShowRejectModal(false);
+                                        setSelectedRefund(null);
+                                    }} 
+                                    className="btn-secondary flex-1"
+                                >
                                     Hủy
                                 </button>
                             </div>
@@ -58509,6 +59384,9 @@ import {
     CheckCircleIcon,
     ClockIcon,
     ExclamationTriangleIcon,
+    BuildingLibraryIcon,
+    IdentificationIcon,
+    UserCircleIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 
@@ -58700,6 +59578,301 @@ const BookingDetailPage = () => {
         }
     };
 
+    // ============================================
+    // ⭐ HÀM LẤY TRẠNG THÁI HOÀN TIỀN
+    // ============================================
+    const getRefundStatusBadge = (status, thongTinHoanTien) => {
+        const configs = {
+            'Chưa yêu cầu': { 
+                color: 'badge-gray', 
+                icon: <ClockIcon className="w-4 h-4" />, 
+                label: 'Chưa yêu cầu' 
+            },
+            'Đã yêu cầu': { 
+                color: 'badge-warning', 
+                icon: <ClockIcon className="w-4 h-4" />, 
+                label: 'Đang chờ xử lý' 
+            },
+            'Đã hoàn': { 
+                color: 'badge-success', 
+                icon: <CheckCircleIcon className="w-4 h-4" />, 
+                label: 'Đã hoàn tiền' 
+            },
+            'Từ chối': { 
+                color: 'badge-danger', 
+                icon: <XCircleIcon className="w-4 h-4" />, 
+                label: 'Từ chối' 
+            },
+        };
+        const config = configs[status] || configs['Chưa yêu cầu'];
+        return (
+            <span className={`badge ${config.color} flex items-center gap-1`}>
+                {config.icon}
+                {config.label}
+            </span>
+        );
+    };
+
+// frontend/src/pages/BookingDetailPage.jsx
+// Phần renderRefundInfo - SỬA LẠI ĐỂ LẤY SỐ TIỀN YÊU CẦU
+
+const renderRefundInfo = () => {
+    if (!booking || booking.trang_thai_don_hang !== 'Đã hủy') return null;
+
+    const thongTin = booking.thong_tin_hoan_tien || {};
+    const isRejected = booking.hoan_tien === 'Từ chối';
+    const isApproved = booking.hoan_tien === 'Đã hoàn';
+    const isPending = booking.hoan_tien === 'Đã yêu cầu';
+    const hasRefundStatus = booking.hoan_tien && booking.hoan_tien !== 'Chưa yêu cầu';
+    
+    if (!hasRefundStatus) return null;
+    
+    // ⭐ XÁC ĐỊNH SỐ TIỀN HIỂN THỊ
+    let displayAmount = 0;
+    let displayLabel = '';
+    
+    if (isRejected) {
+        // ⭐ LẤY SỐ TIỀN YÊU CẦU BAN ĐẦU TỪ thong_tin_hoan_tien
+        displayAmount = thongTin.so_tien_yeu_cau || booking.so_tien_hoan || 0;
+        displayLabel = 'Số tiền yêu cầu (đã bị từ chối)';
+    } else if (isApproved) {
+        displayAmount = booking.so_tien_hoan || 0;
+        displayLabel = 'Số tiền đã hoàn';
+    } else {
+        displayAmount = booking.so_tien_hoan || 0;
+        displayLabel = 'Số tiền yêu cầu';
+    }
+    
+    // ⭐ XÁC ĐỊNH MÀU SẮC
+    let bgColor = 'bg-gray-50 border-gray-200';
+    let iconColor = 'text-gray-400';
+    let headerBg = 'bg-gray-100';
+    let headerText = 'text-gray-700';
+    let borderColor = 'border-gray-300';
+    
+    if (isRejected) {
+        bgColor = 'bg-red-50 border-red-200';
+        iconColor = 'text-red-500';
+        headerBg = 'bg-red-100';
+        headerText = 'text-red-700';
+        borderColor = 'border-red-300';
+    } else if (isApproved) {
+        bgColor = 'bg-green-50 border-green-200';
+        iconColor = 'text-green-500';
+        headerBg = 'bg-green-100';
+        headerText = 'text-green-700';
+        borderColor = 'border-green-300';
+    } else if (isPending) {
+        bgColor = 'bg-yellow-50 border-yellow-200';
+        iconColor = 'text-yellow-500';
+        headerBg = 'bg-yellow-100';
+        headerText = 'text-yellow-700';
+        borderColor = 'border-yellow-300';
+    }
+
+    const bankInfo = thongTin;
+    const isBankTransfer = bankInfo?.phuong_thuc === 'chuyen_khoan';
+
+    return (
+        <div className={`p-4 border-b ${bgColor}`}>
+            {/* ⭐ HEADER */}
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-full ${headerBg}`}>
+                        {isRejected ? (
+                            <XCircleIcon className={`w-6 h-6 ${iconColor}`} />
+                        ) : isApproved ? (
+                            <CheckCircleIcon className={`w-6 h-6 ${iconColor}`} />
+                        ) : (
+                            <ClockIcon className={`w-6 h-6 ${iconColor}`} />
+                        )}
+                    </div>
+                    <div>
+                        <p className={`font-bold text-lg ${headerText}`}>
+                            {isRejected ? '❌ Từ chối hoàn tiền' : 
+                             isApproved ? '✅ Đã hoàn tiền' : 
+                             '⏳ Đang chờ xử lý'}
+                        </p>
+                        {isRejected && (
+                            <p className="text-sm text-red-600">
+                                Yêu cầu hoàn tiền của bạn đã bị từ chối
+                            </p>
+                        )}
+                        {isApproved && (
+                            <p className="text-sm text-green-600">
+                                Tiền đã được hoàn vào tài khoản của bạn
+                            </p>
+                        )}
+                        {isPending && (
+                            <p className="text-sm text-yellow-600">
+                                Đang xử lý yêu cầu của bạn
+                            </p>
+                        )}
+                    </div>
+                </div>
+                <div>
+                    {getRefundStatusBadge(booking.hoan_tien, thongTin)}
+                </div>
+            </div>
+
+            {/* ⭐ THÔNG TIN SỐ TIỀN */}
+            <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 p-3 bg-white rounded-lg border ${borderColor} mb-3`}>
+                <div>
+                    <p className="text-xs text-gray-500">{displayLabel}</p>
+                    <p className={`font-bold text-lg ${
+                        isRejected ? 'text-red-500 line-through' : 
+                        isApproved ? 'text-green-500' : 
+                        'text-primary-500'
+                    }`}>
+                        {formatCurrency(displayAmount)}
+                    </p>
+                    {isRejected && (
+                        <p className="text-xs text-red-500">⚠️ Đã từ chối, không hoàn tiền</p>
+                    )}
+                </div>
+                <div>
+                    <p className="text-xs text-gray-500">Tổng tiền đơn hàng</p>
+                    <p className="font-medium text-gray-700">
+                        {formatCurrency(booking.tong_tien)}
+                    </p>
+                </div>
+                <div>
+                    <p className="text-xs text-gray-500">Trạng thái thanh toán</p>
+                    <p className="font-medium text-gray-700">
+                        {booking.trang_thai_thanh_toan || 'N/A'}
+                    </p>
+                </div>
+            </div>
+
+            {/* ⭐ THÔNG TIN CHI TIẾT */}
+            <div className="space-y-3">
+                {/* Thông tin ngân hàng */}
+                {bankInfo && Object.keys(bankInfo).length > 0 && (
+                    <div className={`bg-white rounded-lg p-3 border ${borderColor}`}>
+                        <h4 className={`font-semibold ${headerText} mb-2 flex items-center gap-2`}>
+                            {isBankTransfer ? (
+                                <BuildingLibraryIcon className="w-5 h-5" />
+                            ) : (
+                                <BanknotesIcon className="w-5 h-5" />
+                            )}
+                            {isBankTransfer ? 'Thông tin chuyển khoản' : 'Phương thức nhận tiền'}
+                        </h4>
+                        
+                        {isBankTransfer ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                {bankInfo.ten_ngan_hang && (
+                                    <div className="flex justify-between border-b border-gray-100 pb-1">
+                                        <span className="text-gray-500">Ngân hàng</span>
+                                        <span className="font-medium text-gray-700">{bankInfo.ten_ngan_hang}</span>
+                                    </div>
+                                )}
+                                {bankInfo.so_tai_khoan && (
+                                    <div className="flex justify-between border-b border-gray-100 pb-1">
+                                        <span className="text-gray-500">Số tài khoản</span>
+                                        <span className="font-mono font-bold text-gray-700">{bankInfo.so_tai_khoan}</span>
+                                    </div>
+                                )}
+                                {bankInfo.chu_tai_khoan && (
+                                    <div className="flex justify-between border-b border-gray-100 pb-1">
+                                        <span className="text-gray-500">Chủ tài khoản</span>
+                                        <span className="font-medium text-gray-700">{bankInfo.chu_tai_khoan}</span>
+                                    </div>
+                                )}
+                                {bankInfo.chi_nhanh && (
+                                    <div className="flex justify-between border-b border-gray-100 pb-1">
+                                        <span className="text-gray-500">Chi nhánh</span>
+                                        <span className="font-medium text-gray-700">{bankInfo.chi_nhanh}</span>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <p className="text-gray-600 text-sm">💵 Nhận tiền mặt tại văn phòng</p>
+                        )}
+                        
+                        {bankInfo.so_dien_thoai && (
+                            <div className="mt-2 text-sm flex items-center gap-2 text-gray-600">
+                                <span>📞</span>
+                                <span>SĐT liên hệ: <strong>{bankInfo.so_dien_thoai}</strong></span>
+                            </div>
+                        )}
+                        
+                        {bankInfo.ghi_chu && (
+                            <div className="mt-2 p-2 bg-yellow-50 rounded-lg text-sm text-yellow-700">
+                                📝 Ghi chú: {bankInfo.ghi_chu}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ⭐ THỜI GIAN YÊU CẦU */}
+                {bankInfo.ngay_yeu_cau && (
+                    <div className="flex items-center gap-2 text-sm text-gray-500 bg-white rounded-lg p-2 border border-gray-100">
+                        <CalendarIcon className="w-4 h-4" />
+                        <span>Yêu cầu vào: <strong>{formatDateTime(bankInfo.ngay_yeu_cau)}</strong></span>
+                    </div>
+                )}
+
+                {/* ⭐ HIỂN THỊ THÔNG TIN DUYỆT - CHỈ KHI ĐÃ HOÀN */}
+                {isApproved && bankInfo.ngay_duyet && (
+                    <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                        <div className="flex items-center gap-2 text-sm text-green-700">
+                            <CheckCircleIcon className="w-4 h-4" />
+                            <span><strong>Đã duyệt:</strong> {formatDateTime(bankInfo.ngay_duyet)}</span>
+                        </div>
+                        {bankInfo.ghi_chu_admin && (
+                            <p className="text-sm text-green-600 mt-1">
+                                📝 Ghi chú: {bankInfo.ghi_chu_admin}
+                            </p>
+                        )}
+                    </div>
+                )}
+
+                {/* ⭐ HIỂN THỊ THÔNG TIN TỪ CHỐI - CHỈ KHI BỊ TỪ CHỐI */}
+                {isRejected && (
+                    <div className="bg-red-50 rounded-lg p-3 border border-red-200">
+                        <div className="flex items-start gap-2">
+                            <XCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-red-700">Lý do từ chối:</p>
+                                <p className="text-sm text-red-600 mt-1">
+                                    {bankInfo.ly_do_tu_choi || 'Không có lý do cụ thể'}
+                                </p>
+                                {bankInfo.ngay_tu_choi && (
+                                    <p className="text-xs text-red-500 mt-2">
+                                        📅 Từ chối vào: {formatDateTime(bankInfo.ngay_tu_choi)}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ⭐ HIỂN THỊ TRẠNG THÁI ĐANG CHỜ XỬ LÝ */}
+                {isPending && (
+                    <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                        <div className="flex items-center gap-2 text-sm text-yellow-700">
+                            <ClockIcon className="w-4 h-4 animate-spin" />
+                            <span>Yêu cầu đang được xử lý, vui lòng chờ trong 3-5 ngày làm việc</span>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* ⭐ NÚT YÊU CẦU HOÀN TIỀN */}
+            {booking.hoan_tien === 'Chưa yêu cầu' && (
+                <div className="mt-3">
+                    <button 
+                        onClick={() => setShowRefundForm(true)}
+                        className="btn-primary text-sm whitespace-nowrap flex items-center gap-2"
+                    >
+                        <BanknotesIcon className="w-4 h-4" />
+                        Yêu cầu hoàn tiền
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
     const hasOfflinePaymentNote = booking?.yeu_cau_dac_biet?.includes('KHÁCH HÀNG CHỌN THANH TOÁN TẠI VĂN PHÒNG');
 
     if (isLoading) return <LoadingSpinner />;
@@ -58724,11 +59897,10 @@ const BookingDetailPage = () => {
     const canCancel = (booking.trang_thai_don_hang === 'Chờ xác nhận' || booking.trang_thai_don_hang === 'Đã xác nhận') && daysUntilDeparture > 0;
     const canDownloadVoucher = booking.trang_thai_thanh_toan === 'Đã thanh toán' || booking.trang_thai_thanh_toan === 'Đã đặt cọc';
     const canReview = booking.trang_thai_don_hang === 'Đã hoàn thành' && !booking.danhGia;
-    const canRequestRefund = booking.trang_thai_don_hang === 'Đã hủy' && 
-                             booking.hoan_tien === 'Chưa yêu cầu' && 
-                             parseFloat(booking.so_tien_hoan || 0) > 0;
+    
     const isDepositPaid = booking.trang_thai_thanh_toan === 'Đã đặt cọc' && booking.tien_con_lai > 0;
 
+    // Phần còn lại giữ nguyên...
     return (
         <div className="container-custom py-8">
             <button onClick={() => navigate('/my-bookings')} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6 transition-colors">
@@ -58749,11 +59921,7 @@ const BookingDetailPage = () => {
                                     <span className={`ml-2 px-2 py-1 rounded-full text-xs ${daysUntilDeparture >= 7 ? 'bg-green-100 text-green-700' : daysUntilDeparture > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
                                         {daysUntilDeparture > 0 ? `Còn ${daysUntilDeparture} ngày` : 'Đã quá hạn'}
                                     </span>
-                                    <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
-                                        booking.trang_thai_thanh_toan === 'Đã thanh toán' ? 'bg-green-100 text-green-700' :
-                                        booking.trang_thai_thanh_toan === 'Đã đặt cọc' ? 'bg-yellow-100 text-yellow-700' :
-                                        'bg-gray-100 text-gray-500'
-                                    }`}>
+                                    <span className={`ml-2 px-2 py-1 rounded-full text-xs ${booking.trang_thai_thanh_toan === 'Đã thanh toán' ? 'bg-green-100 text-green-700' : booking.trang_thai_thanh_toan === 'Đã đặt cọc' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}`}>
                                         {booking.trang_thai_thanh_toan}
                                     </span>
                                 </p>
@@ -58767,7 +59935,6 @@ const BookingDetailPage = () => {
                                 </button>
                             )}
                             
-                            {/* ⭐ NÚT THANH TOÁN PHẦN CÒN LẠI - KHI ĐÃ ĐẶT CỌC */}
                             {isDepositPaid && (
                                 <button 
                                     onClick={() => navigate(`/payment/${booking.ma_don_hang}`, { 
@@ -58785,7 +59952,6 @@ const BookingDetailPage = () => {
                                 </button>
                             )}
                             
-                            {/* ⭐ NÚT HỦY ĐƠN - Ở SAU CÙNG */}
                             {canCancel && (
                                 <button onClick={handleCancelClick} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2" disabled={cancelMutation.isLoading}>
                                     <XMarkIcon className="w-5 h-5" />
@@ -58806,17 +59972,15 @@ const BookingDetailPage = () => {
                     </div>
                 )}
 
-                {/* ⭐ THÔNG BÁO ĐÃ THANH TOÁN */}
                 {booking.trang_thai_thanh_toan === 'Đã thanh toán' && (
-                    <div className="p-4 bg-gray-100 border-b border-gray-200 flex items-center gap-3">
-                       
+                    <div className="p-4 bg-green-50 border-b border-green-200 flex items-center gap-3">
+                        <CheckCircleIcon className="w-6 h-6 text-green-500" />
                         <div>
                             <p className="text-sm font-medium text-green-700">Đơn hàng đã được thanh toán</p>
                         </div>
                     </div>
                 )}
 
-                {/* ⭐ THÔNG BÁO CHỜ THANH TOÁN */}
                 {booking.trang_thai_thanh_toan === 'Chưa thanh toán' && booking.trang_thai_don_hang === 'Chờ xác nhận' && (
                     <div className="p-4 bg-yellow-50 border-b border-yellow-200 flex items-center gap-3">
                         <CreditCardIcon className="w-6 h-6 text-yellow-500" />
@@ -58827,7 +59991,10 @@ const BookingDetailPage = () => {
                     </div>
                 )}
 
-                {/* Chi tiết đơn hàng */}
+                {/* ⭐ HIỂN THỊ THÔNG TIN HOÀN TIỀN */}
+                {renderRefundInfo()}
+
+                {/* Chi tiết đơn hàng - giữ nguyên phần còn lại */}
                 <div className="p-6 space-y-6">
                     {/* Tour Info */}
                     <div>
@@ -58903,6 +60070,18 @@ const BookingDetailPage = () => {
                                     {booking.trang_thai_thanh_toan}
                                 </span>
                             </div>
+                            {booking.trang_thai_don_hang === 'Đã hủy' && booking.so_tien_hoan > 0 && (
+                                <div className="flex justify-between text-sm pt-2 border-t border-dashed border-yellow-300">
+                                    <span className="text-gray-500">Số tiền hoàn lại</span>
+                                    <span className={`font-bold ${
+                                        booking.hoan_tien === 'Từ chối' ? 'text-red-500' : 
+                                        booking.hoan_tien === 'Đã hoàn' ? 'text-green-600' : 
+                                        'text-yellow-600'
+                                    }`}>
+                                        {formatCurrency(booking.so_tien_hoan)}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -58916,10 +60095,26 @@ const BookingDetailPage = () => {
                                     {booking.trang_thai_don_hang}
                                 </span>
                             </div>
+                            {booking.trang_thai_don_hang === 'Đã hủy' && (
+                                <div className="flex justify-between text-sm pt-2 border-t">
+                                    <span className="text-gray-500">Trạng thái hoàn tiền</span>
+                                    <div>
+                                        {getRefundStatusBadge(booking.hoan_tien, booking.thong_tin_hoan_tien)}
+                                    </div>
+                                </div>
+                            )}
                             {booking.ly_do_huy && (
                                 <div className="flex justify-between text-sm text-red-600 pt-2 border-t">
                                     <span className="text-gray-500">Lý do hủy</span>
-                                    <span>{booking.ly_do_huy}</span>
+                                    <span className="text-right max-w-[60%]">{booking.ly_do_huy}</span>
+                                </div>
+                            )}
+                            {booking.trang_thai_don_hang === 'Đã hủy' && 
+                             booking.hoan_tien === 'Từ chối' && 
+                             booking.thong_tin_hoan_tien?.ly_do_tu_choi && (
+                                <div className="flex justify-between text-sm text-red-600 pt-2 border-t">
+                                    <span className="text-gray-500">Lý do từ chối hoàn tiền</span>
+                                    <span className="text-right max-w-[60%]">{booking.thong_tin_hoan_tien.ly_do_tu_choi}</span>
                                 </div>
                             )}
                         </div>
@@ -58977,9 +60172,7 @@ const BookingDetailPage = () => {
                     )}
                 </div>
 
-                {/* ============================================ */}
                 {/* MODAL XÁC NHẬN HỦY ĐƠN HÀNG */}
-                {/* ============================================ */}
                 {showCancelConfirmModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
@@ -59079,9 +60272,7 @@ const BookingDetailPage = () => {
                     </div>
                 )}
 
-                {/* ============================================ */}
                 {/* FORM YÊU CẦU HOÀN TIỀN */}
-                {/* ============================================ */}
                 {showRefundForm && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -60844,7 +62035,7 @@ import RefundRequestForm from '../components/booking/RefundRequestForm';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import Pagination from '../components/common/Pagination';
 import BookingStatus from '../components/booking/BookingStatus';
-import { formatCurrency, formatDate } from '../utils/helpers';
+import { formatCurrency, formatDate, formatDateTime } from '../utils/helpers';
 import { toast } from 'react-toastify';
 import {
     EyeIcon,
@@ -60861,7 +62052,9 @@ import {
     CurrencyDollarIcon,
     BanknotesIcon,
     TrashIcon,
-    PlusIcon
+    PlusIcon,
+    ClockIcon,
+    CheckCircleIcon
 } from '@heroicons/react/24/outline';
 
 const MyBookingsPage = () => {
@@ -61071,6 +62264,18 @@ const MyBookingsPage = () => {
         return booking?.yeu_cau_dac_biet?.includes('KHÁCH HÀNG CHỌN THANH TOÁN TẠI VĂN PHÒNG');
     };
 
+    // ⭐ HÀM LẤY TRẠNG THÁI HOÀN TIỀN BADGE
+    const getRefundStatusBadge = (status) => {
+        const configs = {
+            'Chưa yêu cầu': { color: 'badge-gray', label: 'Chưa yêu cầu' },
+            'Đã yêu cầu': { color: 'badge-warning', label: 'Đang chờ xử lý' },
+            'Đã hoàn': { color: 'badge-success', label: 'Đã hoàn tiền' },
+            'Từ chối': { color: 'badge-danger', label: 'Từ chối' },
+        };
+        const config = configs[status] || configs['Chưa yêu cầu'];
+        return <span className={`badge ${config.color}`}>{config.label}</span>;
+    };
+
     const filters = [
         { value: '', label: 'Tất cả' },
         { value: 'Chờ xác nhận', label: 'Chờ xác nhận' },
@@ -61126,6 +62331,14 @@ const MyBookingsPage = () => {
                             const hasOfflineNote = hasOfflinePaymentNote(booking);
                             const isDepositPaid = booking.trang_thai_thanh_toan === 'Đã đặt cọc' && booking.tien_con_lai > 0;
 
+                            // ⭐ KIỂM TRA TRẠNG THÁI HOÀN TIỀN
+                            const isRefundRejected = booking.hoan_tien === 'Từ chối';
+                            const isRefundApproved = booking.hoan_tien === 'Đã hoàn';
+                            const isRefundPending = booking.hoan_tien === 'Đã yêu cầu';
+                            const hasRefundStatus = booking.trang_thai_don_hang === 'Đã hủy' && 
+                                                   booking.hoan_tien && 
+                                                   booking.hoan_tien !== 'Chưa yêu cầu';
+
                             return (
                                 <div key={booking.ma_don_hang} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                                     {hasOfflineNote && (
@@ -61134,6 +62347,69 @@ const MyBookingsPage = () => {
                                             <span className="text-xs text-blue-600">Đã ghi nhận thanh toán tại văn phòng</span>
                                         </div>
                                     )}
+
+                                    {/* ⭐ HIỂN THỊ TRẠNG THÁI HOÀN TIỀN - GIỐNG NHAU CHO CẢ TỪ CHỐI VÀ ĐÃ HOÀN */}
+                                    {hasRefundStatus && (
+                                        <div className={`px-4 py-2 border-b flex flex-wrap items-center justify-between gap-2 ${
+                                            isRefundRejected ? 'bg-red-50 border-red-200' : 
+                                            isRefundApproved ? 'bg-green-50 border-green-200' : 
+                                            'bg-yellow-50 border-yellow-200'
+                                        }`}>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                {isRefundRejected ? (
+                                                    <XCircleIcon className="w-4 h-4 text-red-500" />
+                                                ) : isRefundApproved ? (
+                                                    <CheckCircleIcon className="w-4 h-4 text-green-500" />
+                                                ) : (
+                                                    <ClockIcon className="w-4 h-4 text-yellow-500" />
+                                                )}
+                                                <span className="text-sm font-medium" style={{
+                                                    color: isRefundRejected ? '#dc2626' : 
+                                                           isRefundApproved ? '#16a34a' : '#d97706'
+                                                }}>
+                                                    Trạng thái hoàn tiền:
+                                                </span>
+                                                {getRefundStatusBadge(booking.hoan_tien)}
+                                                {booking.so_tien_hoan > 0 && (
+                                                    <span className="text-sm text-gray-500">
+                                                        ({formatCurrency(booking.so_tien_hoan)})
+                                                    </span>
+                                                )}
+                                            </div>
+                                            
+                                            {/* ⭐ HIỂN THỊ LÝ DO TỪ CHỐI */}
+                                            {isRefundRejected && booking.thong_tin_hoan_tien?.ly_do_tu_choi && (
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-xs text-red-600 max-w-[200px] truncate" 
+                                                          title={booking.thong_tin_hoan_tien.ly_do_tu_choi}>
+                                                        Lý do: {booking.thong_tin_hoan_tien.ly_do_tu_choi}
+                                                    </span>
+                                                    <button 
+                                                        onClick={() => handleViewDetail(booking.ma_don_hang)}
+                                                        className="text-xs text-blue-500 hover:text-blue-600 underline"
+                                                    >
+                                                        Xem chi tiết
+                                                    </button>
+                                                </div>
+                                            )}
+                                            
+                                            {/* ⭐ HIỂN THỊ THỜI GIAN HOÀN/ TỪ CHỐI */}
+                                            {isRefundApproved && booking.thong_tin_hoan_tien?.ngay_duyet && (
+                                                <span className="text-xs text-green-600">
+                                                    Hoàn vào: {formatDate(booking.thong_tin_hoan_tien.ngay_duyet)}
+                                                </span>
+                                            )}
+                                            {isRefundRejected && booking.thong_tin_hoan_tien?.ngay_tu_choi && (
+                                                <span className="text-xs text-red-600">
+                                                    Từ chối vào: {formatDate(booking.thong_tin_hoan_tien.ngay_tu_choi)}
+                                                </span>
+                                            )}
+                                            {isRefundPending && (
+                                                <span className="text-xs text-yellow-600">⏳ Đang chờ xử lý</span>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <div className="p-4 md:p-6 border-b">
                                         <div className="flex flex-wrap items-center justify-between gap-4">
                                             <div>
@@ -61157,14 +62433,13 @@ const MyBookingsPage = () => {
                                             </div>
                                         </div>
                                     </div>
+
                                     <div className="p-4 bg-gray-50 flex flex-wrap items-center justify-between gap-3">
                                         <div className="flex flex-wrap gap-2">
-                                            {/* Nút Chi tiết */}
                                             <button onClick={() => handleViewDetail(booking.ma_don_hang)} className="btn-secondary text-sm flex items-center gap-1">
                                                 <EyeIcon className="w-4 h-4" /> Chi tiết
                                             </button>
                                             
-                                            {/* Nút Tải vé */}
                                             {canDownloadVoucher && (
                                                 <button onClick={() => handleDownloadVoucher(booking.ma_don_hang)} className="btn-secondary text-sm flex items-center gap-1" disabled={downloadMutation.isLoading}>
                                                     <DocumentArrowDownIcon className="w-4 h-4" />
@@ -61172,7 +62447,6 @@ const MyBookingsPage = () => {
                                                 </button>
                                             )}
                                             
-                                            {/* ⭐ NÚT THANH TOÁN PHẦN CÒN LẠI - KHI ĐÃ ĐẶT CỌC */}
                                             {isDepositPaid && (
                                                 <button 
                                                     onClick={() => navigate(`/payment/${booking.ma_don_hang}`, { 
@@ -61190,19 +62464,17 @@ const MyBookingsPage = () => {
                                                 </button>
                                             )}
                                             
-                                            {/* ⭐ NÚT THANH TOÁN LẦN ĐẦU - KHI CHƯA THANH TOÁN */}
                                             {booking.trang_thai_don_hang === 'Chờ xác nhận' && booking.trang_thai_thanh_toan === 'Chưa thanh toán' && (
                                                 <button onClick={() => navigate(`/payment/${booking.ma_don_hang}`)} className="btn-primary text-sm">
                                                     Thanh toán
                                                 </button>
                                             )}
                                             
-                                          {/* ⭐ NÚT HỦY ĐƠN - Ở SAU CÙNG */}
-                                                                      {canCancel && (
-                                                                          <button onClick={handleCancelClick} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2" disabled={cancelMutation.isLoading}>
-                                                                              <XMarkIcon className="w-5 h-5" />
-                                                                              {cancelMutation.isLoading ? 'Đang xử lý...' : 'Hủy đơn hàng'}
-                                                                          </button>
+                                            {canCancel && (
+                                                <button onClick={() => handleCancelClick(booking)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2" disabled={cancelMutation.isLoading}>
+                                                    <XMarkIcon className="w-5 h-5" />
+                                                    {cancelMutation.isLoading ? 'Đang xử lý...' : 'Hủy đơn hàng'}
+                                                </button>
                                             )}
                                         </div>
                                     </div>
@@ -61223,9 +62495,7 @@ const MyBookingsPage = () => {
                 </div>
             )}
 
-            {/* ============================================ */}
             {/* MODAL XÁC NHẬN HỦY ĐƠN HÀNG */}
-            {/* ============================================ */}
             {showCancelConfirmModal && cancelBookingItem && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
@@ -61308,7 +62578,7 @@ const MyBookingsPage = () => {
 
                         {refundInfo?.percentage > 0 && (
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                                <p className="text-sm text-blue-700">Số tiền sẽ được hoàn trong vòng 3-5 ngày làm việc</p>
+                                <p className="text-sm text-blue-700">💰 Số tiền sẽ được hoàn trong vòng 3-5 ngày làm việc</p>
                             </div>
                         )}
 
@@ -61325,9 +62595,7 @@ const MyBookingsPage = () => {
                 </div>
             )}
 
-            {/* ============================================ */}
             {/* FORM YÊU CẦU HOÀN TIỀN */}
-            {/* ============================================ */}
             {showRefundForm && refundBooking && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -61390,6 +62658,9 @@ const PaymentPage = () => {
     const additionalAmount = location.state?.additionalAmount || 0;
     const newTotal = location.state?.newTotal || 0;
     const currentTotal = location.state?.currentTotal || 0;
+
+    console.log('📊 PaymentPage - isAdditionalPayment:', isAdditionalPayment);
+    console.log('📊 PaymentPage - additionalAmount:', additionalAmount);
 
     // Fetch booking detail
     const { data: bookingData, isLoading, refetch } = useQuery(
@@ -61455,8 +62726,9 @@ const PaymentPage = () => {
         const interval = setInterval(async () => {
             try {
                 const response = await paymentsAPI.getPaymentStatus(bookingId);
-                if (response.data.data?.trang_thai === 'Đã thanh toán' || 
-                    response.data.data?.trang_thai === 'Đã đặt cọc') {
+                const data = response.data.data;
+                if (data?.trang_thai_thanh_toan === 'Đã thanh toán' || 
+                    data?.trang_thai_thanh_toan === 'Đã đặt cọc') {
                     clearInterval(interval);
                     toast.success('🎉 Thanh toán thành công!');
                     navigate('/my-bookings');
@@ -61514,11 +62786,12 @@ const PaymentPage = () => {
         setError('');
 
         try {
+            // ⭐ GỬI THÊM THAM SỐ is_additional CHO BACKEND
             await paymentMutation.mutateAsync({
                 ma_don_hang: parseInt(bookingId),
                 phuong_thuc_thanh_toan: phuong_thuc_thanh_toan,
                 so_tien: amount,
-                is_additional: isAdditionalPayment
+                is_additional: isAdditionalPayment // ⭐ QUAN TRỌNG
             });
         } catch (err) {
             setLoading(false);
@@ -61736,13 +63009,19 @@ const PaymentPage = () => {
                             {isAdditionalPayment && (
                                 <div className="flex justify-between text-sm text-gray-600">
                                     <span>Đã thanh toán</span>
-                                    <span className="text-green-600">{formatCurrency(booking.tien_coc)}</span>
+                                    <span className="text-green-600">{formatCurrency(currentTotal)}</span>
                                 </div>
                             )}
                             {isAdditionalPayment && (
-                                <div className="flex justify-between text-sm text-red-600 font-medium">
+                                <div className="flex justify-between text-sm text-red-600 font-medium border-t pt-2">
                                     <span>Cần thanh toán</span>
                                     <span>{formatCurrency(additionalAmount)}</span>
+                                </div>
+                            )}
+                            {!isAdditionalPayment && booking.tien_con_lai > 0 && (
+                                <div className="flex justify-between text-sm text-gray-600">
+                                    <span>Tiền còn lại</span>
+                                    <span>{formatCurrency(booking.tien_con_lai)}</span>
                                 </div>
                             )}
                         </div>
@@ -61796,7 +63075,7 @@ const PaymentPage = () => {
                     </div>
                 )}
 
-                {/* ⭐ CHỌN PHƯƠNG THỨC THANH TOÁN ONLINE */}
+                {/* ⭐ CHỌN PHƯƠNG THỨC THANH TOÁN ONLINE - CHỈ HIỂN THỊ KHI KHÔNG PHẢI THANH TOÁN BỔ SUNG */}
                 {paymentType === 'online' && !isAdditionalPayment && !isDepositPaid && (
                     <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
                         <h2 className="text-lg font-semibold text-gray-800 mb-4">Phương thức thanh toán online</h2>

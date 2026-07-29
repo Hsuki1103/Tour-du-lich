@@ -1,3 +1,4 @@
+// backend/src/models/DonDatTour.js
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 
@@ -80,9 +81,9 @@ const DonDatTour = sequelize.define('DonDatTour', {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
   },
-  // ⭐ THÊM CÁC TRƯỜNG MỚI CHO HOÀN TIỀN
+  // ⭐ SỬA ENUM - THÊM 'Từ chối'
   hoan_tien: {
-    type: DataTypes.ENUM('Chưa yêu cầu', 'Đã yêu cầu', 'Đã hoàn'),
+    type: DataTypes.ENUM('Chưa yêu cầu', 'Đã yêu cầu', 'Đã hoàn', 'Từ chối'),
     defaultValue: 'Chưa yêu cầu'
   },
   thong_tin_hoan_tien: {

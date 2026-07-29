@@ -1384,14 +1384,16 @@ export const getRefundRequests = async (req, res) => {
         const where = {
             trang_thai_don_hang: 'Đã hủy',
             hoan_tien: {
-                [Op.ne]: 'Chưa yêu cầu'
+                [Op.ne]: 'Chưa yêu cầu'  // Lấy tất cả trừ Chưa yêu cầu
             }
         };
 
+        // ⭐ LỌC THEO STATUS - HỖ TRỢ CẢ 'Từ chối'
         if (status) {
             where.hoan_tien = status;
         }
 
+        // ⭐ TÌM KIẾM
         if (search) {
             where[Op.or] = [
                 { '$nguoiDung.ho_ten$': { [Op.like]: `%${search}%` } },
@@ -1399,6 +1401,9 @@ export const getRefundRequests = async (req, res) => {
                 { ma_don_hang: { [Op.like]: `%${search}%` } }
             ];
         }
+
+        // ⭐ THÊM LOG ĐỂ DEBUG
+        console.log('📊 getRefundRequests - where:', JSON.stringify(where, null, 2));
 
         const refunds = await DonDatTour.findAndCountAll({
             where,
@@ -1438,6 +1443,7 @@ export const getRefundRequests = async (req, res) => {
             offset: parseInt(offset)
         });
 
+        // ⭐ THỐNG KÊ
         const totalRefundAmount = await DonDatTour.sum('so_tien_hoan', {
             where: {
                 trang_thai_don_hang: 'Đã hủy',
@@ -1451,6 +1457,10 @@ export const getRefundRequests = async (req, res) => {
                 hoan_tien: 'Đã yêu cầu'
             }
         });
+
+        // ⭐ LOG KẾT QUẢ
+        console.log('📊 getRefundRequests - found:', refunds.count);
+        console.log('📊 getRefundRequests - statuses:', refunds.rows.map(r => r.hoan_tien));
 
         res.json({
             success: true,
@@ -1475,9 +1485,8 @@ export const getRefundRequests = async (req, res) => {
         });
     }
 };
-
 // ============================================
-// ADMIN: XEM CHI TIẾT YÊU CẦU HOÀN TIỀN (SỬA LỖI 400)
+// ADMIN: XEM CHI TIẾT YÊU CẦU HOÀN TIỀN (SỬA LỖI)
 // ============================================
 export const getRefundDetail = async (req, res) => {
     try {
@@ -1545,6 +1554,7 @@ export const getRefundDetail = async (req, res) => {
             });
         }
 
+        // ⭐ KIỂM TRA NẾU CHƯA CÓ YÊU CẦU HOÀN TIỀN
         if (!refund.thong_tin_hoan_tien) {
             return res.status(400).json({
                 success: false,
@@ -1574,6 +1584,14 @@ export const getRefundDetail = async (req, res) => {
                 refundData.thong_tin_hoan_tien.phuong_thuc_label = refundData.thong_tin_hoan_tien.phuong_thuc || 'Chưa xác định';
             }
         }
+
+        // ⭐ LOG ĐỂ DEBUG
+        console.log('📊 Refund detail response:', {
+            ma_don_hang: refundData.ma_don_hang,
+            hoan_tien: refundData.hoan_tien,
+            so_tien_hoan: refundData.so_tien_hoan,
+            thong_tin_hoan_tien: refundData.thong_tin_hoan_tien
+        });
 
         res.json({
             success: true,
@@ -1728,7 +1746,17 @@ export const rejectRefund = async (req, res) => {
         console.log('📝 Reason:', ly_do_tu_choi);
         console.log('========================================');
 
-        if (!ly_do_tu_choi) {
+        // ⭐ KIỂM TRA ID HỢP LỆ
+        if (!id || isNaN(parseInt(id))) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'ID đơn hàng không hợp lệ'
+            });
+        }
+
+        // ⭐ KIỂM TRA LÝ DO TỪ CHỐI
+        if (!ly_do_tu_choi || !ly_do_tu_choi.trim()) {
             await transaction.rollback();
             return res.status(400).json({
                 success: false,
@@ -1769,7 +1797,7 @@ export const rejectRefund = async (req, res) => {
             thong_tin_hoan_tien: booking.thong_tin_hoan_tien
         });
 
-        // ⭐ KIỂM TRA TRẠNG THÁI
+        // ⭐ KIỂM TRA ĐƠN HÀNG ĐÃ HỦY CHƯA
         if (booking.trang_thai_don_hang !== 'Đã hủy') {
             await transaction.rollback();
             return res.status(400).json({
@@ -1778,6 +1806,7 @@ export const rejectRefund = async (req, res) => {
             });
         }
 
+        // ⭐ KIỂM TRA TRẠNG THÁI HOÀN TIỀN
         if (booking.hoan_tien === 'Từ chối') {
             await transaction.rollback();
             return res.status(400).json({
@@ -1802,10 +1831,20 @@ export const rejectRefund = async (req, res) => {
             });
         }
 
-        // ⭐ LƯU THÔNG TIN TỪ CHỐI
-        const currentRefundInfo = typeof booking.thong_tin_hoan_tien === 'string' 
-            ? JSON.parse(booking.thong_tin_hoan_tien || '{}')
-            : (booking.thong_tin_hoan_tien || {});
+        // ⭐ LƯU SỐ TIỀN YÊU CẦU BAN ĐẦU VÀO thong_tin_hoan_tien
+        const soTienYeuCau = parseFloat(booking.so_tien_hoan || 0);
+        
+        // Lấy thông tin hiện tại
+        let currentRefundInfo = {};
+        if (booking.thong_tin_hoan_tien) {
+            try {
+                currentRefundInfo = typeof booking.thong_tin_hoan_tien === 'string' 
+                    ? JSON.parse(booking.thong_tin_hoan_tien) 
+                    : booking.thong_tin_hoan_tien;
+            } catch (e) {
+                currentRefundInfo = {};
+            }
+        }
         
         const thongTinHoanTien = {
             // ⭐ GIỮ NGUYÊN THÔNG TIN CŨ
@@ -1817,18 +1856,30 @@ export const rejectRefund = async (req, res) => {
             so_dien_thoai: currentRefundInfo.so_dien_thoai || null,
             ghi_chu: currentRefundInfo.ghi_chu || null,
             ngay_yeu_cau: currentRefundInfo.ngay_yeu_cau || new Date().toISOString(),
+            // ⭐ LƯU SỐ TIỀN YÊU CẦU BAN ĐẦU
+            so_tien_yeu_cau: soTienYeuCau,
             // ⭐ THÊM THÔNG TIN TỪ CHỐI
             tu_choi_bởi: req.user.ma_nguoi_dung,
             ngay_tu_choi: new Date().toISOString(),
-            ly_do_tu_choi: ly_do_tu_choi
+            ly_do_tu_choi: ly_do_tu_choi.trim()
         };
 
-        // ⭐ CẬP NHẬT ĐƠN HÀNG
+        console.log('📊 Refund info to save:', thongTinHoanTien);
+
+        // ⭐ CẬP NHẬT ĐƠN HÀNG - SET so_tien_hoan = 0 NHƯNG ĐÃ LƯU SỐ TIỀN YÊU CẦU VÀO JSON
         await booking.update({
             hoan_tien: 'Từ chối',
             thong_tin_hoan_tien: thongTinHoanTien,
             so_tien_hoan: 0
         }, { transaction });
+
+        // ⭐ LOG SAU KHI CẬP NHẬT
+        console.log('✅ Updated booking:', {
+            ma_don_hang: booking.ma_don_hang,
+            hoan_tien: 'Từ chối',
+            so_tien_hoan: 0,
+            thong_tin_hoan_tien: thongTinHoanTien
+        });
 
         // ⭐ CẬP NHẬT THANH TOÁN NẾU CÓ
         const thanhToan = await ThanhToan.findOne({
@@ -1844,14 +1895,14 @@ export const rejectRefund = async (req, res) => {
                     ...thanhToan.thong_tin,
                     refund_rejected_at: new Date().toISOString(),
                     refund_rejected_by: req.user.ma_nguoi_dung,
-                    refund_reject_reason: ly_do_tu_choi
+                    refund_reject_reason: ly_do_tu_choi.trim()
                 }
             }, { transaction });
         }
 
         await transaction.commit();
 
-        // ⭐ LẤY LẠI DỮ LIỆU SAU KHI CẬP NHẬT
+        // ⭐ LẤY LẠI DỮ LIỆU SAU KHI CẬP NHẬT ĐỂ TRẢ VỀ
         const updatedBooking = await DonDatTour.findByPk(parseInt(id), {
             include: [
                 {
@@ -1862,10 +1913,11 @@ export const rejectRefund = async (req, res) => {
             ]
         });
 
-        console.log('✅ Updated refund status:', {
+        console.log('✅ Final refund status:', {
             ma_don_hang: updatedBooking.ma_don_hang,
             hoan_tien: updatedBooking.hoan_tien,
-            so_tien_hoan: updatedBooking.so_tien_hoan
+            so_tien_hoan: updatedBooking.so_tien_hoan,
+            thong_tin_hoan_tien: updatedBooking.thong_tin_hoan_tien
         });
 
         // Gửi email thông báo từ chối
@@ -1873,7 +1925,7 @@ export const rejectRefund = async (req, res) => {
             await sendRefundRejectedEmail(booking.nguoiDung.email, {
                 ma_don_hang: booking.ma_don_hang,
                 ten_tour: booking.lichKhoiHanh?.tour?.ten_tour || 'N/A',
-                ly_do_tu_choi: ly_do_tu_choi
+                ly_do_tu_choi: ly_do_tu_choi.trim()
             });
             console.log('✅ Email sent to customer');
         } catch (emailError) {
@@ -1887,7 +1939,8 @@ export const rejectRefund = async (req, res) => {
                 ma_don_hang: booking.ma_don_hang,
                 hoan_tien: 'Từ chối',
                 so_tien_hoan: 0,
-                ly_do_tu_choi: ly_do_tu_choi,
+                so_tien_yeu_cau: soTienYeuCau,
+                ly_do_tu_choi: ly_do_tu_choi.trim(),
                 ngay_tu_choi: new Date().toISOString()
             }
         });

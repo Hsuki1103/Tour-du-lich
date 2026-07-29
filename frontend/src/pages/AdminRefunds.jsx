@@ -89,7 +89,7 @@ const AdminRefunds = () => {
         }
     );
 
-    // Get status badge
+    // ⭐ HÀM LẤY TRẠNG THÁI BADGE
     const getStatusBadge = (status) => {
         const configs = {
             'Chưa yêu cầu': { color: 'badge-gray', icon: <ClockIcon className="w-4 h-4" />, label: 'Chưa yêu cầu' },
@@ -217,32 +217,50 @@ const AdminRefunds = () => {
     };
 
     // ============================================
-    // ⭐ HÀM HIỂN THỊ THÔNG TIN HOÀN TIỀN (DÙNG CHUNG)
+    // ⭐ HÀM HIỂN THỊ THÔNG TIN HOÀN TIỀN - SỐ TIỀN KHÔNG GẠCH NGANG
     // ============================================
     const renderRefundInfo = (refundData) => {
         if (!refundData) return null;
         
+        const isRejected = refundData.hoan_tien === 'Từ chối';
+        const isApproved = refundData.hoan_tien === 'Đã hoàn';
+        const isPending = refundData.hoan_tien === 'Đã yêu cầu';
+        
         return (
             <div className={`border rounded-lg p-4 ${
-                refundData.hoan_tien === 'Đã hoàn' ? 'bg-green-50 border-green-200' :
-                refundData.hoan_tien === 'Đã yêu cầu' ? 'bg-yellow-50 border-yellow-200' :
-                refundData.hoan_tien === 'Từ chối' ? 'bg-red-50 border-red-200' :
+                isRejected ? 'bg-red-50 border-red-200' :
+                isApproved ? 'bg-green-50 border-green-200' :
+                isPending ? 'bg-yellow-50 border-yellow-200' :
                 'bg-gray-50'
             }`}>
-                <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <BanknotesIcon className={`w-5 h-5 ${
-                        refundData.hoan_tien === 'Đã hoàn' ? 'text-green-500' :
-                        refundData.hoan_tien === 'Đã yêu cầu' ? 'text-yellow-500' :
-                        refundData.hoan_tien === 'Từ chối' ? 'text-red-500' :
-                        'text-gray-500'
-                    }`} />
-                    Thông tin hoàn tiền
-                </h3>
+                {/* ⭐ HEADER VỚI TRẠNG THÁI RÕ RÀNG */}
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        {isRejected ? (
+                            <XCircleIcon className="w-5 h-5 text-red-500" />
+                        ) : isApproved ? (
+                            <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                        ) : (
+                            <ClockIcon className="w-5 h-5 text-yellow-500" />
+                        )}
+                        <h3 className="font-semibold text-gray-700">
+                            {isRejected ? '❌ Từ chối hoàn tiền' :
+                             isApproved ? '✅ Đã hoàn tiền' :
+                             '⏳ Đang chờ xử lý'}
+                        </h3>
+                    </div>
+                    {getStatusBadge(refundData.hoan_tien)}
+                </div>
                 
+                {/* ⭐ THÔNG TIN SỐ TIỀN - KHÔNG GẠCH NGANG */}
                 <div className="bg-white rounded-lg p-3 mb-3 shadow-sm">
                     <div className="flex justify-between items-center">
                         <span className="text-gray-600">Số tiền cần hoàn</span>
-                        <span className="font-bold text-primary-500 text-xl">
+                        <span className={`font-bold text-xl ${
+                            isRejected ? 'text-red-500' : 
+                            isApproved ? 'text-green-500' : 
+                            'text-yellow-500'
+                        }`}>
                             {formatCurrency(refundData.so_tien_hoan)}
                         </span>
                     </div>
@@ -256,12 +274,54 @@ const AdminRefunds = () => {
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm mb-3">
-                    <span className="text-gray-600 font-medium">Trạng thái</span>
-                    {getStatusBadge(refundData.hoan_tien)}
-                </div>
-
+                {/* ⭐ THÔNG TIN NGÂN HÀNG */}
                 {renderBankingInfo(refundData.thong_tin_hoan_tien)}
+                
+                {/* ⭐ HIỂN THỊ LÝ DO TỪ CHỐI */}
+                {isRejected && refundData.thong_tin_hoan_tien?.ly_do_tu_choi && (
+                    <div className="mt-3 p-3 bg-red-100 border border-red-300 rounded-lg">
+                        <p className="text-sm font-medium text-red-700 flex items-center gap-2">
+                            <XCircleIcon className="w-4 h-4" />
+                            Lý do từ chối:
+                        </p>
+                        <p className="text-sm text-red-600 mt-1">
+                            {refundData.thong_tin_hoan_tien.ly_do_tu_choi}
+                        </p>
+                        {refundData.thong_tin_hoan_tien.ngay_tu_choi && (
+                            <p className="text-xs text-red-500 mt-1">
+                                📅 Từ chối vào: {formatDateTime(refundData.thong_tin_hoan_tien.ngay_tu_choi)}
+                            </p>
+                        )}
+                    </div>
+                )}
+                
+                {/* ⭐ HIỂN THỊ THÔNG BÁO ĐÃ HOÀN */}
+                {isApproved && refundData.thong_tin_hoan_tien?.ngay_duyet && (
+                    <div className="mt-3 p-3 bg-green-100 border border-green-300 rounded-lg">
+                        <p className="text-sm font-medium text-green-700 flex items-center gap-2">
+                            <CheckCircleIcon className="w-4 h-4" />
+                            Đã hoàn tiền vào: {formatDateTime(refundData.thong_tin_hoan_tien.ngay_duyet)}
+                        </p>
+                        {refundData.thong_tin_hoan_tien.ghi_chu_admin && (
+                            <p className="text-sm text-green-600 mt-1">
+                                📝 Ghi chú: {refundData.thong_tin_hoan_tien.ghi_chu_admin}
+                            </p>
+                        )}
+                    </div>
+                )}
+                
+                {/* ⭐ HIỂN THỊ THÔNG BÁO ĐANG CHỜ */}
+                {isPending && (
+                    <div className="mt-3 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                        <p className="text-sm font-medium text-yellow-700 flex items-center gap-2">
+                            <ClockIcon className="w-4 h-4" />
+                            Đang chờ xử lý
+                        </p>
+                        <p className="text-sm text-yellow-600 mt-1">
+                            Yêu cầu từ: {formatDateTime(refundData.ngay_cap_nhat)}
+                        </p>
+                    </div>
+                )}
             </div>
         );
     };
@@ -439,7 +499,13 @@ const AdminRefunds = () => {
                                                     <p className="text-xs text-gray-500">{formatDate(refund.lichKhoiHanh?.ngay_khoi_hanh)}</p>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <p className="font-bold text-primary-500">{formatCurrency(refund.so_tien_hoan)}</p>
+                                                    <p className={`font-bold ${
+                                                        refund.hoan_tien === 'Từ chối' ? 'text-red-500' : 
+                                                        refund.hoan_tien === 'Đã hoàn' ? 'text-green-500' : 
+                                                        'text-primary-500'
+                                                    }`}>
+                                                        {formatCurrency(refund.so_tien_hoan)}
+                                                    </p>
                                                     <p className="text-xs text-gray-500">Tổng: {formatCurrency(refund.tong_tien)}</p>
                                                 </td>
                                                 <td className="px-6 py-4">
@@ -460,7 +526,6 @@ const AdminRefunds = () => {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2">
-                                                        {/* ⭐ CHỈ GIỮ 2 NÚT: XÁC NHẬN VÀ TỪ CHỐI */}
                                                         {refund.hoan_tien === 'Đã yêu cầu' && (
                                                             <>
                                                                 <button
@@ -479,7 +544,6 @@ const AdminRefunds = () => {
                                                                 </button>
                                                             </>
                                                         )}
-                                                        {/* ⭐ NẾU ĐÃ XỬ LÝ, KHÔNG HIỂN THỊ NÚT NÀO */}
                                                         {(refund.hoan_tien === 'Đã hoàn' || refund.hoan_tien === 'Từ chối') && (
                                                             <span className="text-sm text-gray-400">Đã xử lý</span>
                                                         )}
@@ -522,14 +586,13 @@ const AdminRefunds = () => {
                 </div>
 
                 {/* ============================================ */}
-                {/* ⭐ MODAL XÁC NHẬN HOÀN TIỀN (HIỂN THỊ ĐẦY ĐỦ THÔNG TIN) */}
+                {/* ⭐ MODAL XÁC NHẬN HOÀN TIỀN */}
                 {/* ============================================ */}
                 {showApproveModal && selectedRefund && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
                             <h3 className="text-xl font-bold text-gray-800 mb-4">✅ Xác nhận hoàn tiền</h3>
                             
-                            {/* ⭐ HIỂN THỊ THÔNG TIN HOÀN TIỀN ĐẦY ĐỦ */}
                             <div className="bg-green-50 rounded-lg p-4 mb-4">
                                 <div className="space-y-2">
                                     <p className="text-sm text-green-700">
@@ -542,7 +605,6 @@ const AdminRefunds = () => {
                                         📅 Ngày yêu cầu: {formatDateTime(selectedRefund.ngay_cap_nhat)}
                                     </p>
                                     
-                                    {/* ⭐ HIỂN THỊ THÔNG TIN CHUYỂN KHOẢN */}
                                     {selectedRefund.thong_tin_hoan_tien && selectedRefund.thong_tin_hoan_tien.phuong_thuc === 'chuyen_khoan' && (
                                         <div className="mt-3 pt-3 border-t border-green-200">
                                             <p className="text-sm font-medium text-green-700 mb-2">🏦 Thông tin tài khoản nhận hoàn tiền:</p>
@@ -622,14 +684,13 @@ const AdminRefunds = () => {
                 )}
 
                 {/* ============================================ */}
-                {/* ⭐ MODAL TỪ CHỐI HOÀN TIỀN (HIỂN THỊ ĐẦY ĐỦ THÔNG TIN) */}
+                {/* ⭐ MODAL TỪ CHỐI HOÀN TIỀN */}
                 {/* ============================================ */}
                 {showRejectModal && selectedRefund && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
                             <h3 className="text-xl font-bold text-gray-800 mb-4">❌ Từ chối hoàn tiền</h3>
                             
-                            {/* ⭐ HIỂN THỊ THÔNG TIN HOÀN TIỀN ĐẦY ĐỦ (GIỐNG MODAL XÁC NHẬN) */}
                             <div className="bg-red-50 rounded-lg p-4 mb-4">
                                 <div className="space-y-2">
                                     <p className="text-sm text-red-700">
@@ -645,7 +706,6 @@ const AdminRefunds = () => {
                                         📅 Ngày yêu cầu: {formatDateTime(selectedRefund.ngay_cap_nhat)}
                                     </p>
                                     
-                                    {/* ⭐ HIỂN THỊ THÔNG TIN CHUYỂN KHOẢN (GIỐNG MODAL XÁC NHẬN) */}
                                     {selectedRefund.thong_tin_hoan_tien && selectedRefund.thong_tin_hoan_tien.phuong_thuc === 'chuyen_khoan' && (
                                         <div className="mt-3 pt-3 border-t border-red-200">
                                             <p className="text-sm font-medium text-red-700 mb-2">🏦 Thông tin tài khoản nhận hoàn tiền:</p>
