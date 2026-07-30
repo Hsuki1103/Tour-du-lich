@@ -1,3 +1,4 @@
+// backend/src/middleware/upload.js
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -20,20 +21,20 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    cb(null, 'tour-' + uniqueSuffix + ext);
   }
 });
 
-// Filter file
+// Filter file - HỖ TRỢ NHIỀU ĐỊNH DẠNG
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|webp/;
+  const allowedTypes = /jpeg|jpg|png|gif|webp|svg|bmp|tiff|ico/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
 
   if (mimetype && extname) {
     return cb(null, true);
   } else {
-    cb(new Error('Chỉ chấp nhận file ảnh (jpeg, jpg, png, gif, webp)'));
+    cb(new Error('Chỉ chấp nhận file ảnh (jpeg, jpg, png, gif, webp, svg, bmp)'));
   }
 };
 
@@ -52,22 +53,38 @@ export const uploadMultiple = multer({
     fileSize: 5 * 1024 * 1024 // 5MB
   },
   fileFilter: fileFilter
-}).array('images', 10); // Tối đa 10 ảnh
+}).array('images', 10);
 
-// Upload cho tour (single)
-export const uploadTourImage = multer({
-  storage: storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB
-  },
-  fileFilter: fileFilter
-}).single('hinh_anh');
-
-// Upload nhiều ảnh cho tour
+// Upload cho tour - HỖ TRỢ NHIỀU ẢNH
 export const uploadTourImages = multer({
   storage: storage,
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB
   },
   fileFilter: fileFilter
-}).array('hinh_anh_phu', 10);
+}).fields([
+  { name: 'hinh_anh', maxCount: 1 },
+  { name: 'hinh_anh_phu', maxCount: 10 }
+]);
+
+// Upload ảnh đại diện
+export const uploadAvatar = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      const avatarDir = path.join(__dirname, '../../uploads/avatars');
+      if (!fs.existsSync(avatarDir)) {
+        fs.mkdirSync(avatarDir, { recursive: true });
+      }
+      cb(null, avatarDir);
+    },
+    filename: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname);
+      cb(null, 'avatar-' + uniqueSuffix + ext);
+    }
+  }),
+  limits: {
+    fileSize: 5 * 1024 * 1024
+  },
+  fileFilter: fileFilter
+}).single('image');

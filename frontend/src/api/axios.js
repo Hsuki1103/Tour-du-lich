@@ -1,6 +1,12 @@
+// frontend/src/api/axios.js
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// ⭐ EXPORT BASE URL CHO STATIC FILES
+export const STATIC_BASE_URL = import.meta.env.VITE_API_URL 
+  ? import.meta.env.VITE_API_URL.replace('/api', '') 
+  : 'http://localhost:5000';
 
 const axiosInstance = axios.create({
   baseURL: API_URL,

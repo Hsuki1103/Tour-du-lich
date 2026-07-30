@@ -1,3 +1,4 @@
+// backend/src/models/Tour.js
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 
@@ -48,12 +49,30 @@ const Tour = sequelize.define('Tour', {
     allowNull: true
   },
   hinh_anh: {
-    type: DataTypes.STRING(255),
-    allowNull: true
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    comment: 'Ảnh đại diện chính'
   },
   hinh_anh_phu: {
     type: DataTypes.TEXT,
-    allowNull: true
+    allowNull: true,
+    comment: 'Danh sách ảnh phụ (JSON array)',
+    get() {
+      const raw = this.getDataValue('hinh_anh_phu');
+      if (!raw) return [];
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return [];
+      }
+    },
+    set(value) {
+      if (Array.isArray(value)) {
+        this.setDataValue('hinh_anh_phu', JSON.stringify(value));
+      } else {
+        this.setDataValue('hinh_anh_phu', value);
+      }
+    }
   },
   trang_thai: {
     type: DataTypes.ENUM('Đang hoạt động', 'Ngừng bán', 'Hết chỗ'),

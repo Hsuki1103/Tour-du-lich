@@ -1,3 +1,4 @@
+// frontend/src/pages/AdminTours.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -33,7 +34,7 @@ const AdminTours = () => {
 
   const isEditing = !!id;
 
-  // ⭐ Fetch tours với bộ lọc
+  // Fetch tours với bộ lọc
   const { data, isLoading, error, refetch } = useQuery(
     ['admin-tours', page, searchTerm, filterKhuVuc, filterTrangThai],
     () => toursAPI.getTours({ 
@@ -50,7 +51,7 @@ const AdminTours = () => {
   const total = data?.data?.data?.total || 0;
   const totalPages = data?.data?.data?.totalPages || 1;
 
-  // ⭐ THỐNG KÊ TOUR
+  // THỐNG KÊ TOUR
   const stats = {
     total: tours.length,
     active: tours.filter(t => t.trang_thai === 'Đang hoạt động').length,
@@ -115,7 +116,6 @@ const AdminTours = () => {
     setShowScheduleModal(true);
   };
 
-  // ⭐ HÀM RESET BỘ LỌC
   const handleResetFilters = () => {
     setSearchTerm('');
     setFilterKhuVuc('');
@@ -146,7 +146,7 @@ const AdminTours = () => {
           </button>
         </div>
 
-        {/* ⭐ THỐNG KÊ TOUR */}
+        {/* THỐNG KÊ TOUR */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-sm p-4 text-center">
             <p className="text-sm text-gray-500">Tổng số tour</p>
@@ -166,7 +166,7 @@ const AdminTours = () => {
           </div>
         </div>
 
-        {/* ⭐ BỘ LỌC NÂNG CAO */}
+        {/* BỘ LỌC */}
         <div className="flex flex-wrap gap-4 mb-6">
           <div className="flex-1 min-w-[200px]">
             <div className="relative">
@@ -214,7 +214,7 @@ const AdminTours = () => {
           )}
         </div>
 
-        {/* Tours Table */}
+        {/* Tours Table - ĐÃ XÓA CỘT ẢNH */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           {error ? (
             <div className="p-6 text-center text-red-500">
@@ -230,7 +230,7 @@ const AdminTours = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Điểm đến</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khu vực</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số ngày</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Giá</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Giá từ</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
                     </tr>
@@ -238,16 +238,9 @@ const AdminTours = () => {
                   <tbody className="divide-y divide-gray-200">
                     {tours.map((tour) => (
                       <tr key={tour.ma_tour} className="hover:bg-gray-50">
+                        {/* ⭐ CỘT TOUR - KHÔNG CÓ ẢNH */}
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={tour.hinh_anh || '/images/tour-placeholder.jpg'}
-                              alt={tour.ten_tour}
-                              className="w-12 h-12 object-cover rounded-lg"
-                              onError={(e) => { e.target.src = 'https://picsum.photos/seed/tour/100/100'; }}
-                            />
-                            <span className="font-medium text-gray-800 line-clamp-2">{tour.ten_tour}</span>
-                          </div>
+                          <span className="font-medium text-gray-800 line-clamp-2">{tour.ten_tour}</span>
                         </td>
                         <td className="px-6 py-4">{tour.diem_den}</td>
                         <td className="px-6 py-4">
@@ -351,83 +344,83 @@ const AdminTours = () => {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Tour Form Modal */}
-        {showForm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold text-gray-800">
-                    {editingTour ? 'Sửa tour' : 'Thêm tour mới'}
-                  </h2>
-                  <button
-                    onClick={handleFormClose}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <XMarkIcon className="w-6 h-6" />
-                  </button>
-                </div>
-                <TourForm
-                  tour={editingTour}
-                  onSuccess={handleFormSuccess}
-                  onCancel={handleFormClose}
-                />
+      {/* Tour Form Modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  {editingTour ? 'Sửa tour' : 'Thêm tour mới'}
+                </h2>
+                <button
+                  onClick={handleFormClose}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <XMarkIcon className="w-6 h-6" />
+                </button>
               </div>
+              <TourForm
+                tour={editingTour}
+                onSuccess={handleFormSuccess}
+                onCancel={handleFormClose}
+              />
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Schedule Modal */}
-        {showScheduleModal && selectedTour && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold text-gray-800">
-                    Lịch khởi hành - {selectedTour.ten_tour}
-                  </h2>
-                  <button
-                    onClick={() => setShowScheduleModal(false)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <XMarkIcon className="w-6 h-6" />
-                  </button>
-                </div>
-                
-                {selectedTour.lichKhoiHanhs?.length > 0 ? (
-                  <div className="space-y-3">
-                    {selectedTour.lichKhoiHanhs.map((schedule) => (
-                      <div key={schedule.ma_lich_khoi_hanh} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="font-medium text-gray-800">
-                              {formatDate(schedule.ngay_khoi_hanh)}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              Chỗ: {schedule.so_chot_da_dat}/{schedule.so_chot_toi_da}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-primary-500">
-                              {formatCurrency(schedule.gia_nguoi_lon)} / người lớn
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {formatCurrency(schedule.gia_tre_em)} / trẻ em
-                            </p>
-                          </div>
+      {/* Schedule Modal */}
+      {showScheduleModal && selectedTour && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Lịch khởi hành - {selectedTour.ten_tour}
+                </h2>
+                <button
+                  onClick={() => setShowScheduleModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <XMarkIcon className="w-6 h-6" />
+                </button>
+              </div>
+              
+              {selectedTour.lichKhoiHanhs?.length > 0 ? (
+                <div className="space-y-3">
+                  {selectedTour.lichKhoiHanhs.map((schedule) => (
+                    <div key={schedule.ma_lich_khoi_hanh} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium text-gray-800">
+                            {formatDate(schedule.ngay_khoi_hanh)}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Chỗ: {schedule.so_chot_da_dat}/{schedule.so_chot_toi_da}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-primary-500">
+                            {formatCurrency(schedule.gia_nguoi_lon)} / người lớn
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {formatCurrency(schedule.gia_tre_em)} / trẻ em
+                          </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">Chưa có lịch khởi hành</p>
-                )}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">Chưa có lịch khởi hành</p>
+              )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };

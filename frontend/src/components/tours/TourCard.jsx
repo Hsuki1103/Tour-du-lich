@@ -1,9 +1,10 @@
+// frontend/src/components/tours/TourCard.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MapPinIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 import { StarIcon } from '@heroicons/react/24/outline';
-import { formatCurrency } from '../../utils/helpers';
+import { formatCurrency, getImageUrl } from '../../utils/helpers';
 
 const TourCard = ({ tour }) => {
   const {
@@ -21,7 +22,6 @@ const TourCard = ({ tour }) => {
     ? Math.min(...lichKhoiHanhs.map(l => parseFloat(l.gia_nguoi_lon)))
     : 0;
 
-  // Hàm render sao
   const renderStars = () => {
     const stars = [];
     const roundedRating = Math.round(averageRating || 0);
@@ -40,10 +40,9 @@ const TourCard = ({ tour }) => {
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
       <Link to={`/tours/${ma_tour}`}>
-        {/* Ảnh */}
         <div className="relative h-48 overflow-hidden">
           <img
-            src={hinh_anh || 'https://picsum.photos/seed/tour/600/400'}
+            src={getImageUrl(hinh_anh) || 'https://picsum.photos/seed/tour/600/400'}
             alt={ten_tour}
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
             onError={(e) => {
@@ -60,9 +59,7 @@ const TourCard = ({ tour }) => {
           )}
         </div>
 
-        {/* Nội dung */}
         <div className="p-4">
-          {/* ⭐ HIỂN THỊ SAO Ở TRANG CHỦ */}
           <div className="flex items-center gap-2 mb-2">
             <div className="flex items-center gap-0.5">
               {renderStars()}

@@ -1,4 +1,5 @@
 // frontend/src/api/bookings.js
+
 import axios from './axios';
 
 export const bookingsAPI = {
@@ -43,4 +44,14 @@ export const bookingsAPI = {
     },
     
     getRefundStats: (params) => axios.get('/bookings/refunds/stats', { params }),
+
+    // ⭐ STAFF MANAGEMENT - THÊM MỚI
+    getStaffList: () => {
+        console.log('📤 Fetching staff list');
+        return axios.get('/bookings/staff-list');
+    },
+    assignStaff: (id, data) => {
+        console.log('📤 Assign staff:', { id, data });
+        return axios.put(`/bookings/${id}/assign-staff`, data);
+    },
 };

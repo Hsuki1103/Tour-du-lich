@@ -1,3 +1,5 @@
+// backend/src/routes/bookingRoutes.js
+
 import express from 'express';
 import {
     createBooking,
@@ -15,7 +17,9 @@ import {
     getRefundDetail,
     approveRefund,
     rejectRefund,
-    getRefundStats
+    getRefundStats,
+    assignStaff,        // ⭐ THÊM
+    getStaffList        // ⭐ THÊM
 } from '../controllers/bookingController.js';
 import { protect } from '../middleware/auth.js';
 import { checkRole, ROLES } from '../middleware/role.js';
@@ -45,8 +49,14 @@ router.put('/refunds/:id/approve', checkRole(ROLES.ADMIN, ROLES.NHAN_VIEN), appr
 router.put('/refunds/:id/reject', checkRole(ROLES.ADMIN, ROLES.NHAN_VIEN), rejectRefund);
 router.get('/refunds/stats', checkRole(ROLES.ADMIN, ROLES.NHAN_VIEN), getRefundStats);
 
-// Admin & Employee routes
+// ⭐ Admin & Employee routes
 router.use(checkRole(ROLES.ADMIN, ROLES.NHAN_VIEN));
+
+// ⭐ STAFF MANAGEMENT - THÊM MỚI
+router.get('/staff-list', getStaffList);
+router.put('/:id/assign-staff', validate(commonValidations.idParam), assignStaff);
+
+// Booking management
 router.get('/', getAllBookings);
 router.put('/:id/confirm', validate(commonValidations.idParam), confirmBooking);
 router.put('/:id', validate(commonValidations.idParam), updateBooking);

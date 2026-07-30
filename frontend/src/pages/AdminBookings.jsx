@@ -1,4 +1,5 @@
 // frontend/src/pages/AdminBookings.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { bookingsAPI } from '../api/bookings';
@@ -9,1051 +10,1248 @@ import AdminLayout from '../components/admin/AdminLayout';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { formatCurrency, formatDate, getStatusColor } from '../utils/helpers';
 import { 
-  EyeIcon, 
-  CheckIcon, 
-  XMarkIcon, 
-  PencilIcon,
-  UserIcon,
-  PlusIcon,
-  CalendarIcon,
-  CurrencyDollarIcon,
-  UserGroupIcon,
-  ChartBarIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ArrowPathIcon
+    EyeIcon, 
+    CheckIcon, 
+    XMarkIcon, 
+    PencilIcon,
+    UserIcon,
+    PlusIcon,
+    CalendarIcon,
+    CurrencyDollarIcon,
+    UserGroupIcon,
+    ChartBarIcon,
+    ClockIcon,
+    CheckCircleIcon,
+    XCircleIcon,
+    ArrowPathIcon,
+    UserPlusIcon,        // ⭐ ICON PHÂN CÔNG
+    UserMinusIcon        // ⭐ ICON HỦY PHÂN CÔNG
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
 
 const AdminBookings = () => {
-  const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showMyBookings, setShowMyBookings] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [loading, setLoading] = useState(false);
-  
-  // ⭐ STATE CHO ACTION LOADING
-  const [actionLoading, setActionLoading] = useState({
-    confirm: null,   // Lưu id đang confirm
-    cancel: null,    // Lưu id đang cancel
-  });
-  
-  // ⭐ FORM DATA
-  const [formData, setFormData] = useState({
-    ho_ten: '',
-    email: '',
-    so_dien_thoai: '',
-    mat_khau: '123456',
-    ma_nguoi_dung: '',
-    ma_lich_khoi_hanh: '',
-    so_luong_nguoi_lon: 1,
-    so_luong_tre_em: 0,
-    tong_tien: 0,
-    tien_coc: 0,
-    trang_thai_thanh_toan: 'Chưa thanh toán',
-    trang_thai_don_hang: 'Chờ xác nhận'
-  });
-
-  // ⭐ STATE CHO THÔNG TIN LỊCH KHỞI HÀNH
-  const [scheduleInfo, setScheduleInfo] = useState(null);
-
-  // Fetch danh sách lịch khởi hành
-  const { data: schedulesData } = useQuery(
-    ['admin-schedules'], 
-    () => toursAPI.getTours({ limit: 100 })
-  );
-
-  // ⭐ Tạo danh sách schedules từ dữ liệu tour
-  const schedules = [];
-  if (schedulesData?.data?.data?.items) {
-    schedulesData.data.data.items.forEach(tour => {
-      if (tour.lichKhoiHanhs) {
-        tour.lichKhoiHanhs.forEach(schedule => {
-          schedules.push({
-            ...schedule,
-            ten_tour: tour.ten_tour,
-            diem_den: tour.diem_den
-          });
-        });
-      }
+    const queryClient = useQueryClient();
+    const [page, setPage] = useState(1);
+    const [filter, setFilter] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showMyBookings, setShowMyBookings] = useState(false);
+    const [selectedBooking, setSelectedBooking] = useState(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [loading, setLoading] = useState(false);
+    
+    // ⭐ STATE CHO ASSIGN STAFF
+    const [showAssignStaffModal, setShowAssignStaffModal] = useState(false);
+    const [selectedStaff, setSelectedStaff] = useState('');
+    const [assigningBooking, setAssigningBooking] = useState(null);
+    
+    // ⭐ STATE CHO ACTION LOADING
+    const [actionLoading, setActionLoading] = useState({
+        confirm: null,
+        cancel: null,
+        assign: null,
     });
-  }
+    
+    // ⭐ FORM DATA
+    const [formData, setFormData] = useState({
+        ho_ten: '',
+        email: '',
+        so_dien_thoai: '',
+        mat_khau: '123456',
+        ma_nguoi_dung: '',
+        ma_lich_khoi_hanh: '',
+        so_luong_nguoi_lon: 1,
+        so_luong_tre_em: 0,
+        tong_tien: 0,
+        tien_coc: 0,
+        trang_thai_thanh_toan: 'Chưa thanh toán',
+        trang_thai_don_hang: 'Chờ xác nhận'
+    });
 
-  // ⭐ HÀM TÍNH TIỀN
-  const calculateTotal = (schedule, adultCount, childCount) => {
-    if (!schedule) return { tong_tien: 0, tien_coc: 0 };
-    
-    const giaNguoiLon = parseFloat(schedule.gia_nguoi_lon) || 0;
-    const giaTreEm = parseFloat(schedule.gia_tre_em) || 0;
-    
-    const tongTien = (adultCount * giaNguoiLon) + (childCount * giaTreEm);
-    const tienCoc = tongTien * 0.3;
-    
-    return { tong_tien: tongTien, tien_coc: tienCoc };
-  };
+    // ⭐ STATE CHO THÔNG TIN LỊCH KHỞI HÀNH
+    const [scheduleInfo, setScheduleInfo] = useState(null);
 
-  // ⭐ LẤY THÔNG TIN LỊCH KHỞI HÀNH KHI CHỌN
-  useEffect(() => {
-    const fetchScheduleInfo = async () => {
-      if (formData.ma_lich_khoi_hanh) {
-        try {
-          const schedule = schedules.find(s => s.ma_lich_khoi_hanh === parseInt(formData.ma_lich_khoi_hanh));
-          if (schedule) {
-            setScheduleInfo(schedule);
+    // ⭐ FETCH DANH SÁCH NHÂN VIÊN
+    const { data: staffData, refetch: refetchStaff } = useQuery(
+        ['staff-list'],
+        () => bookingsAPI.getStaffList(),
+        { 
+            staleTime: 5 * 60 * 1000,
+            refetchOnWindowFocus: false
+        }
+    );
+    const staffList = staffData?.data?.data || [];
+
+    // Fetch danh sách lịch khởi hành
+    const { data: schedulesData } = useQuery(
+        ['admin-schedules'], 
+        () => toursAPI.getTours({ limit: 100 })
+    );
+
+    // ⭐ Tạo danh sách schedules từ dữ liệu tour
+    const schedules = [];
+    if (schedulesData?.data?.data?.items) {
+        schedulesData.data.data.items.forEach(tour => {
+            if (tour.lichKhoiHanhs) {
+                tour.lichKhoiHanhs.forEach(schedule => {
+                    schedules.push({
+                        ...schedule,
+                        ten_tour: tour.ten_tour,
+                        diem_den: tour.diem_den
+                    });
+                });
+            }
+        });
+    }
+
+    // ⭐ HÀM TÍNH TIỀN
+    const calculateTotal = (schedule, adultCount, childCount) => {
+        if (!schedule) return { tong_tien: 0, tien_coc: 0 };
+        
+        const giaNguoiLon = parseFloat(schedule.gia_nguoi_lon) || 0;
+        const giaTreEm = parseFloat(schedule.gia_tre_em) || 0;
+        
+        const tongTien = (adultCount * giaNguoiLon) + (childCount * giaTreEm);
+        const tienCoc = tongTien * 0.3;
+        
+        return { tong_tien: tongTien, tien_coc: tienCoc };
+    };
+
+    // ⭐ LẤY THÔNG TIN LỊCH KHỞI HÀNH KHI CHỌN
+    useEffect(() => {
+        const fetchScheduleInfo = async () => {
+            if (formData.ma_lich_khoi_hanh) {
+                try {
+                    const schedule = schedules.find(s => s.ma_lich_khoi_hanh === parseInt(formData.ma_lich_khoi_hanh));
+                    if (schedule) {
+                        setScheduleInfo(schedule);
+                        const { tong_tien, tien_coc } = calculateTotal(
+                            schedule,
+                            parseInt(formData.so_luong_nguoi_lon) || 0,
+                            parseInt(formData.so_luong_tre_em) || 0
+                        );
+                        setFormData(prev => ({
+                            ...prev,
+                            tong_tien: tong_tien,
+                            tien_coc: tien_coc
+                        }));
+                    }
+                } catch (error) {
+                    console.error('Error fetching schedule:', error);
+                }
+            } else {
+                setScheduleInfo(null);
+            }
+        };
+        fetchScheduleInfo();
+    }, [formData.ma_lich_khoi_hanh]);
+
+    // ⭐ TỰ ĐỘNG TÍNH TIỀN KHI THAY ĐỔI SỐ LƯỢNG
+    useEffect(() => {
+        if (scheduleInfo) {
             const { tong_tien, tien_coc } = calculateTotal(
-              schedule,
-              parseInt(formData.so_luong_nguoi_lon) || 0,
-              parseInt(formData.so_luong_tre_em) || 0
+                scheduleInfo,
+                parseInt(formData.so_luong_nguoi_lon) || 0,
+                parseInt(formData.so_luong_tre_em) || 0
             );
             setFormData(prev => ({
-              ...prev,
-              tong_tien: tong_tien,
-              tien_coc: tien_coc
+                ...prev,
+                tong_tien: tong_tien,
+                tien_coc: tien_coc
             }));
-          }
-        } catch (error) {
-          console.error('Error fetching schedule:', error);
         }
-      } else {
-        setScheduleInfo(null);
-      }
+    }, [formData.so_luong_nguoi_lon, formData.so_luong_tre_em, scheduleInfo]);
+
+    // Fetch bookings
+    const { data, isLoading, error, refetch } = useQuery(
+        ['admin-bookings', page, filter, searchTerm, showMyBookings],
+        () => bookingsAPI.getAllBookings({ 
+            page, 
+            limit: 20, 
+            trang_thai: filter || undefined,
+            search: searchTerm || undefined,
+            chi_cua_toi: showMyBookings ? 'true' : 'false'
+        }),
+        { keepPreviousData: true }
+    );
+
+    const bookings = data?.data?.data?.items || [];
+    const total = data?.data?.data?.total || 0;
+    const totalPages = data?.data?.data?.totalPages || 1;
+
+    // ⭐ THỐNG KÊ ĐƠN HÀNG
+    const stats = {
+        total: bookings.length,
+        choXacNhan: bookings.filter(b => b.trang_thai_don_hang === 'Chờ xác nhận').length,
+        daXacNhan: bookings.filter(b => b.trang_thai_don_hang === 'Đã xác nhận').length,
+        dangDienRa: bookings.filter(b => b.trang_thai_don_hang === 'Đang diễn ra').length,
+        daHoanThanh: bookings.filter(b => b.trang_thai_don_hang === 'Đã hoàn thành').length,
+        daHuy: bookings.filter(b => b.trang_thai_don_hang === 'Đã hủy').length,
+        chuaThanhToan: bookings.filter(b => b.trang_thai_thanh_toan === 'Chưa thanh toán').length,
+        daDatCoc: bookings.filter(b => b.trang_thai_thanh_toan === 'Đã đặt cọc').length,
+        daThanhToan: bookings.filter(b => b.trang_thai_thanh_toan === 'Đã thanh toán').length,
+        tongDoanhThu: bookings.reduce((sum, b) => sum + (b.tong_tien || 0), 0),
     };
-    fetchScheduleInfo();
-  }, [formData.ma_lich_khoi_hanh]);
 
-  // ⭐ TỰ ĐỘNG TÍNH TIỀN KHI THAY ĐỔI SỐ LƯỢNG
-  useEffect(() => {
-    if (scheduleInfo) {
-      const { tong_tien, tien_coc } = calculateTotal(
-        scheduleInfo,
-        parseInt(formData.so_luong_nguoi_lon) || 0,
-        parseInt(formData.so_luong_tre_em) || 0
-      );
-      setFormData(prev => ({
-        ...prev,
-        tong_tien: tong_tien,
-        tien_coc: tien_coc
-      }));
-    }
-  }, [formData.so_luong_nguoi_lon, formData.so_luong_tre_em, scheduleInfo]);
-
-  // Fetch bookings
-  const { data, isLoading, error, refetch } = useQuery(
-    ['admin-bookings', page, filter, searchTerm, showMyBookings],
-    () => bookingsAPI.getAllBookings({ 
-      page, 
-      limit: 20, 
-      trang_thai: filter || undefined,
-      search: searchTerm || undefined,
-      chi_cua_toi: showMyBookings ? 'true' : 'false'
-    }),
-    { keepPreviousData: true }
-  );
-
-  const bookings = data?.data?.data?.items || [];
-  const total = data?.data?.data?.total || 0;
-  const totalPages = data?.data?.data?.totalPages || 1;
-
-  // ⭐ THỐNG KÊ ĐƠN HÀNG
-  const stats = {
-    total: bookings.length,
-    choXacNhan: bookings.filter(b => b.trang_thai_don_hang === 'Chờ xác nhận').length,
-    daXacNhan: bookings.filter(b => b.trang_thai_don_hang === 'Đã xác nhận').length,
-    dangDienRa: bookings.filter(b => b.trang_thai_don_hang === 'Đang diễn ra').length,
-    daHoanThanh: bookings.filter(b => b.trang_thai_don_hang === 'Đã hoàn thành').length,
-    daHuy: bookings.filter(b => b.trang_thai_don_hang === 'Đã hủy').length,
-    chuaThanhToan: bookings.filter(b => b.trang_thai_thanh_toan === 'Chưa thanh toán').length,
-    daDatCoc: bookings.filter(b => b.trang_thai_thanh_toan === 'Đã đặt cọc').length,
-    daThanhToan: bookings.filter(b => b.trang_thai_thanh_toan === 'Đã thanh toán').length,
-    tongDoanhThu: bookings.reduce((sum, b) => sum + (b.tong_tien || 0), 0),
-  };
-
-  // ⭐ MUTATIONS - CÓ TOAST THÔNG BÁO
-  const confirmMutation = useMutation(
-    (id) => bookingsAPI.confirmBooking(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-bookings']);
-        setActionLoading(prev => ({ ...prev, confirm: null }));
-        toast.success('✅ Xác nhận đơn hàng thành công!');
-      },
-      onError: (error) => {
-        setActionLoading(prev => ({ ...prev, confirm: null }));
-        toast.error(error.response?.data?.message || '❌ Xác nhận đơn hàng thất bại');
-      }
-    }
-  );
-
-  const cancelMutation = useMutation(
-    ({ id, ly_do }) => bookingsAPI.cancelBooking(id, { ly_do }),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-bookings']);
-        setShowCancelModal(false);
-        setCancelReason('');
-        setActionLoading(prev => ({ ...prev, cancel: null }));
-        toast.success('✅ Hủy đơn hàng thành công!');
-      },
-      onError: (error) => {
-        setActionLoading(prev => ({ ...prev, cancel: null }));
-        toast.error(error.response?.data?.message || '❌ Hủy đơn hàng thất bại');
-      }
-    }
-  );
-
-  const updateMutation = useMutation(
-    ({ id, data }) => bookingsAPI.updateBooking(id, data),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-bookings']);
-        setShowEditModal(false);
-        toast.success('✅ Cập nhật đơn hàng thành công!');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.message || '❌ Cập nhật đơn hàng thất bại');
-      }
-    }
-  );
-
-  const addMutation = useMutation(
-    (data) => bookingsAPI.createBooking(data),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-bookings']);
-        setShowAddModal(false);
-        resetForm();
-        toast.success('✅ Thêm đơn hàng thành công!');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.message || '❌ Thêm đơn hàng thất bại');
-      }
-    }
-  );
-
-  // ⭐ TÌM HOẶC TẠO USER
-  const findOrCreateUser = async (email, ho_ten, so_dien_thoai) => {
-    try {
-      const response = await adminAPI.getUsers({ search: email, limit: 1 });
-      const users = response.data.data.items || [];
-      
-      if (users.length > 0) {
-        return users[0].ma_nguoi_dung;
-      }
-
-      const createResponse = await authAPI.register({
-        ho_ten,
-        email,
-        so_dien_thoai,
-        mat_khau: '123456'
-      });
-
-      if (createResponse.data.success) {
-        const newUserResponse = await adminAPI.getUsers({ search: email, limit: 1 });
-        const newUsers = newUserResponse.data.data.items || [];
-        if (newUsers.length > 0) {
-          return newUsers[0].ma_nguoi_dung;
+    // ⭐ MUTATIONS
+    const confirmMutation = useMutation(
+        (id) => bookingsAPI.confirmBooking(id),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(['admin-bookings']);
+                setActionLoading(prev => ({ ...prev, confirm: null }));
+                toast.success('✅ Xác nhận đơn hàng thành công!');
+            },
+            onError: (error) => {
+                setActionLoading(prev => ({ ...prev, confirm: null }));
+                toast.error(error.response?.data?.message || '❌ Xác nhận đơn hàng thất bại');
+            }
         }
-      }
-      throw new Error('Không thể tạo tài khoản khách hàng');
-    } catch (error) {
-      console.error('Find or create user error:', error);
-      throw error;
-    }
-  };
-
-  // ⭐ HANDLE CONFIRM - CÓ LOADING
-  const handleConfirm = (id) => {
-    if (window.confirm('Xác nhận duyệt đơn hàng này?')) {
-      setActionLoading(prev => ({ ...prev, confirm: id }));
-      confirmMutation.mutate(id);
-    }
-  };
-
-  // ⭐ HANDLE CANCEL - CÓ LOADING
-  const handleCancel = () => {
-    if (!cancelReason.trim()) {
-      toast.warning('Vui lòng nhập lý do hủy');
-      return;
-    }
-    setActionLoading(prev => ({ ...prev, cancel: selectedBooking?.ma_don_hang }));
-    cancelMutation.mutate({ 
-      id: selectedBooking?.ma_don_hang, 
-      ly_do: cancelReason 
-    });
-  };
-
-  const openCancelModal = (booking) => {
-    setSelectedBooking(booking);
-    setCancelReason('');
-    setShowCancelModal(true);
-  };
-
-  const handleViewDetail = (booking) => {
-    setSelectedBooking(booking);
-    setShowDetailModal(true);
-  };
-
-  const handleEdit = (booking) => {
-    setSelectedBooking(booking);
-    const schedule = schedules.find(s => s.ma_lich_khoi_hanh === booking.ma_lich_khoi_hanh);
-    setScheduleInfo(schedule || null);
-    
-    setFormData({
-      ho_ten: booking.nguoiDung?.ho_ten || '',
-      email: booking.nguoiDung?.email || '',
-      so_dien_thoai: booking.nguoiDung?.so_dien_thoai || '',
-      ma_nguoi_dung: booking.ma_nguoi_dung,
-      ma_lich_khoi_hanh: booking.ma_lich_khoi_hanh,
-      so_luong_nguoi_lon: booking.so_luong_nguoi_lon,
-      so_luong_tre_em: booking.so_luong_tre_em || 0,
-      tong_tien: booking.tong_tien,
-      tien_coc: booking.tien_coc || 0,
-      trang_thai_thanh_toan: booking.trang_thai_thanh_toan,
-      trang_thai_don_hang: booking.trang_thai_don_hang,
-      mat_khau: '123456'
-    });
-    setShowEditModal(true);
-  };
-
-  const handleAdd = () => {
-    resetForm();
-    setScheduleInfo(null);
-    setShowAddModal(true);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      ho_ten: '',
-      email: '',
-      so_dien_thoai: '',
-      mat_khau: '123456',
-      ma_nguoi_dung: '',
-      ma_lich_khoi_hanh: '',
-      so_luong_nguoi_lon: 1,
-      so_luong_tre_em: 0,
-      tong_tien: 0,
-      tien_coc: 0,
-      trang_thai_thanh_toan: 'Chưa thanh toán',
-      trang_thai_don_hang: 'Chờ xác nhận'
-    });
-    setScheduleInfo(null);
-  };
-
-  const handleAddSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      if (!formData.ma_lich_khoi_hanh) {
-        toast.warning('Vui lòng chọn lịch khởi hành');
-        setLoading(false);
-        return;
-      }
-
-      const userId = await findOrCreateUser(
-        formData.email,
-        formData.ho_ten,
-        formData.so_dien_thoai
-      );
-
-      const bookingData = {
-        ma_nguoi_dung: userId,
-        ma_lich_khoi_hanh: parseInt(formData.ma_lich_khoi_hanh),
-        so_luong_nguoi_lon: parseInt(formData.so_luong_nguoi_lon) || 0,
-        so_luong_tre_em: parseInt(formData.so_luong_tre_em) || 0,
-        tong_tien: parseFloat(formData.tong_tien) || 0,
-        trang_thai_thanh_toan: formData.trang_thai_thanh_toan,
-        trang_thai_don_hang: formData.trang_thai_don_hang,
-        thong_tin_khach: [{ 
-          ho_ten: formData.ho_ten, 
-          loai_khach: 'nguoi_lon' 
-        }]
-      };
-
-      await addMutation.mutateAsync(bookingData);
-    } catch (error) {
-      toast.error(error.message || '❌ Thêm đơn hàng thất bại');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      if (!formData.ma_lich_khoi_hanh) {
-        toast.warning('Vui lòng chọn lịch khởi hành');
-        setLoading(false);
-        return;
-      }
-
-      const bookingData = {
-        ma_nguoi_dung: parseInt(formData.ma_nguoi_dung),
-        ma_lich_khoi_hanh: parseInt(formData.ma_lich_khoi_hanh),
-        so_luong_nguoi_lon: parseInt(formData.so_luong_nguoi_lon) || 0,
-        so_luong_tre_em: parseInt(formData.so_luong_tre_em) || 0,
-        tong_tien: parseFloat(formData.tong_tien) || 0,
-        trang_thai_thanh_toan: formData.trang_thai_thanh_toan,
-        trang_thai_don_hang: formData.trang_thai_don_hang,
-        thong_tin_khach: [{ 
-          ho_ten: formData.ho_ten, 
-          loai_khach: 'nguoi_lon' 
-        }]
-      };
-
-      await updateMutation.mutateAsync({ 
-        id: selectedBooking.ma_don_hang, 
-        data: bookingData 
-      });
-    } catch (error) {
-      toast.error(error.message || '❌ Cập nhật đơn hàng thất bại');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ⭐ RENDER BUTTON CONFIRM VỚI LOADING
-  const renderConfirmButton = (booking) => {
-    const isLoading = actionLoading.confirm === booking.ma_don_hang;
-    return (
-      <button
-        onClick={() => handleConfirm(booking.ma_don_hang)}
-        disabled={isLoading}
-        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        title="Duyệt đơn"
-      >
-        {isLoading ? (
-          <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-        ) : (
-          <CheckIcon className="w-5 h-5" />
-        )}
-      </button>
     );
-  };
 
-  // ⭐ RENDER BUTTON CANCEL VỚI LOADING
-  const renderCancelButton = (booking) => {
-    const isLoading = actionLoading.cancel === booking.ma_don_hang;
-    return (
-      <button
-        onClick={() => openCancelModal(booking)}
-        disabled={isLoading}
-        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        title="Hủy đơn"
-      >
-        {isLoading ? (
-          <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-        ) : (
-          <XMarkIcon className="w-5 h-5" />
-        )}
-      </button>
+    const cancelMutation = useMutation(
+        ({ id, ly_do }) => bookingsAPI.cancelBooking(id, { ly_do }),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(['admin-bookings']);
+                setShowCancelModal(false);
+                setCancelReason('');
+                setActionLoading(prev => ({ ...prev, cancel: null }));
+                toast.success('✅ Hủy đơn hàng thành công!');
+            },
+            onError: (error) => {
+                setActionLoading(prev => ({ ...prev, cancel: null }));
+                toast.error(error.response?.data?.message || '❌ Hủy đơn hàng thất bại');
+            }
+        }
     );
-  };
 
-  if (isLoading) return <LoadingSpinner />;
+    const updateMutation = useMutation(
+        ({ id, data }) => bookingsAPI.updateBooking(id, data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(['admin-bookings']);
+                setShowEditModal(false);
+                toast.success('✅ Cập nhật đơn hàng thành công!');
+            },
+            onError: (error) => {
+                toast.error(error.response?.data?.message || '❌ Cập nhật đơn hàng thất bại');
+            }
+        }
+    );
 
-  return (
-    <AdminLayout>
-      <div className="p-6">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">Quản lý đơn hàng</h1>
-            <p className="text-gray-600">Xem, xử lý và quản lý các đơn hàng</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => refetch()} className="btn-secondary flex items-center gap-2">
-              <ArrowPathIcon className="w-4 h-4" />
-              Làm mới
-            </button>
-            <button onClick={handleAdd} className="btn-primary flex items-center gap-2">
-              <PlusIcon className="w-5 h-5" />
-              Thêm đơn hàng
-            </button>
-          </div>
-        </div>
+    const addMutation = useMutation(
+        (data) => bookingsAPI.createBooking(data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(['admin-bookings']);
+                setShowAddModal(false);
+                resetForm();
+                toast.success('✅ Thêm đơn hàng thành công!');
+            },
+            onError: (error) => {
+                toast.error(error.response?.data?.message || '❌ Thêm đơn hàng thất bại');
+            }
+        }
+    );
 
-        {/* ⭐ THỐNG KÊ ĐƠN HÀNG */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm p-4 text-center border border-gray-200">
-            <div className="flex items-center justify-center mb-2">
-              <ChartBarIcon className="w-6 h-6 text-blue-500" />
-            </div>
-            <p className="text-sm text-gray-500">Tổng đơn hàng</p>
-            <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
-          </div>
-          <div className="bg-yellow-50 rounded-xl shadow-sm p-4 text-center border border-yellow-200">
-            <div className="flex items-center justify-center mb-2">
-              <ClockIcon className="w-6 h-6 text-yellow-500" />
-            </div>
-            <p className="text-sm text-yellow-600">Chờ xác nhận</p>
-            <p className="text-2xl font-bold text-yellow-600">{stats.choXacNhan}</p>
-          </div>
-          <div className="bg-green-50 rounded-xl shadow-sm p-4 text-center border border-green-200">
-            <div className="flex items-center justify-center mb-2">
-              <CheckCircleIcon className="w-6 h-6 text-green-500" />
-            </div>
-            <p className="text-sm text-green-600">Đã xác nhận</p>
-            <p className="text-2xl font-bold text-green-600">{stats.daXacNhan}</p>
-          </div>
-          <div className="bg-blue-50 rounded-xl shadow-sm p-4 text-center border border-blue-200">
-            <div className="flex items-center justify-center mb-2">
-              <CurrencyDollarIcon className="w-6 h-6 text-blue-500" />
-            </div>
-            <p className="text-sm text-blue-600">Đã thanh toán</p>
-            <p className="text-2xl font-bold text-blue-600">{stats.daThanhToan}</p>
-          </div>
-          <div className="bg-red-50 rounded-xl shadow-sm p-4 text-center border border-red-200">
-            <div className="flex items-center justify-center mb-2">
-              <XCircleIcon className="w-6 h-6 text-red-500" />
-            </div>
-            <p className="text-sm text-red-600">Đã hủy</p>
-            <p className="text-2xl font-bold text-red-600">{stats.daHuy}</p>
-          </div>
-        </div>
+    // ⭐ MUTATION ASSIGN STAFF
+    const assignStaffMutation = useMutation(
+        ({ id, ma_nhan_vien }) => bookingsAPI.assignStaff(id, { ma_nhan_vien }),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(['admin-bookings']);
+                setShowAssignStaffModal(false);
+                setSelectedStaff('');
+                setAssigningBooking(null);
+                setActionLoading(prev => ({ ...prev, assign: null }));
+                toast.success('✅ Phân công nhân viên thành công!');
+            },
+            onError: (error) => {
+                setActionLoading(prev => ({ ...prev, assign: null }));
+                toast.error(error.response?.data?.message || '❌ Phân công thất bại');
+            }
+        }
+    );
 
-        {/* Bộ lọc */}
-        <div className="flex flex-wrap gap-4 mb-6">
-          <button
-            onClick={() => setShowMyBookings(!showMyBookings)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-              showMyBookings ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-            }`}
-          >
-            <UserIcon className="w-5 h-5" />
-            {showMyBookings ? '📋 Đơn hàng tôi quản lý' : '📋 Tất cả đơn hàng'}
-          </button>
+    // ⭐ HANDLE ASSIGN STAFF
+    const handleOpenAssignStaff = (booking) => {
+        setAssigningBooking(booking);
+        setSelectedStaff(booking.ma_nhan_vien_phu_trach || '');
+        setShowAssignStaffModal(true);
+    };
 
-          <div className="flex flex-wrap gap-2">
-            {['', 'Chờ xác nhận', 'Đã xác nhận', 'Đang diễn ra', 'Đã hoàn thành', 'Đã hủy'].map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  filter === status ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                }`}
-              >
-                {status || 'Tất cả'}
-              </button>
-            ))}
-          </div>
+    const handleAssignStaff = () => {
+        if (!assigningBooking) return;
+        setActionLoading(prev => ({ ...prev, assign: assigningBooking.ma_don_hang }));
+        assignStaffMutation.mutate({
+            id: assigningBooking.ma_don_hang,
+            ma_nhan_vien: selectedStaff || null
+        });
+    };
 
-          <input
-            type="text"
-            placeholder="Tìm kiếm đơn hàng..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="input-field max-w-sm"
-          />
-        </div>
-
-        {/* Bảng đơn hàng */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          {error ? (
-            <div className="p-6 text-center text-red-500">Có lỗi xảy ra khi tải danh sách đơn hàng</div>
-          ) : bookings.length > 0 ? (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã đơn</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khách hàng</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tour</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày KH</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng tiền</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NV phụ trách</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {bookings.map((booking) => (
-                      <tr key={booking.ma_don_hang} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 font-medium">#{booking.ma_don_hang}</td>
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="font-medium">{booking.nguoiDung?.ho_ten}</p>
-                            <p className="text-sm text-gray-500">{booking.nguoiDung?.email}</p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">{booking.lichKhoiHanh?.tour?.ten_tour || 'N/A'}</td>
-                        <td className="px-6 py-4">{formatDate(booking.lichKhoiHanh?.ngay_khoi_hanh)}</td>
-                        <td className="px-6 py-4 font-medium text-primary-500">
-                          {formatCurrency(booking.tong_tien)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`badge badge-${getStatusColor(booking.trang_thai_don_hang)}`}>
-                            {booking.trang_thai_don_hang}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          {booking.nhanVienPhuTrach?.nguoiDung?.ho_ten ? (
-                            <span className="text-sm text-gray-700">👤 {booking.nhanVienPhuTrach.nguoiDung.ho_ten}</span>
-                          ) : (
-                            <span className="text-sm text-gray-400">Chưa phân công</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => handleViewDetail(booking)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Chi tiết">
-                              <EyeIcon className="w-5 h-5" />
-                            </button>
-                            <button onClick={() => handleEdit(booking)} className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg" title="Sửa">
-                              <PencilIcon className="w-5 h-5" />
-                            </button>
-                            {booking.trang_thai_don_hang === 'Chờ xác nhận' && (
-                              renderConfirmButton(booking)
-                            )}
-                            {(booking.trang_thai_don_hang === 'Chờ xác nhận' || booking.trang_thai_don_hang === 'Đã xác nhận') && (
-                              renderCancelButton(booking)
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {/* Pagination */}
-              <div className="px-6 py-4 border-t flex justify-between items-center">
-                <p className="text-sm text-gray-500">Hiển thị {bookings.length} / {total} đơn hàng</p>
-                <div className="flex gap-2">
-                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 border rounded-lg disabled:opacity-50">Trước</button>
-                  <span className="px-3 py-1">Trang {page} / {totalPages}</span>
-                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 border rounded-lg disabled:opacity-50">Sau</button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="p-12 text-center">
-              <p className="text-gray-500">Không có đơn hàng nào</p>
-              <button onClick={handleAdd} className="btn-primary mt-4">Thêm đơn hàng đầu tiên</button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ⭐ MODAL THÊM ĐƠN HÀNG - Giữ nguyên */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-gray-800">Thêm đơn hàng mới</h2>
-              <button onClick={() => { setShowAddModal(false); resetForm(); }} className="text-gray-500 hover:text-gray-700">
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
+    // ⭐ TÌM HOẶC TẠO USER
+    const findOrCreateUser = async (email, ho_ten, so_dien_thoai) => {
+        try {
+            const response = await adminAPI.getUsers({ search: email, limit: 1 });
+            const users = response.data.data.items || [];
             
-            <div className="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
-              📝 Nếu khách hàng chưa có tài khoản, hệ thống sẽ tự động tạo với mật khẩu <strong>123456</strong>
-            </div>
+            if (users.length > 0) {
+                return users[0].ma_nguoi_dung;
+            }
 
-            <form onSubmit={handleAddSubmit} className="space-y-4">
-              {/* Thông tin khách hàng */}
-              <div className="border-b pb-4">
-                <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <UserIcon className="w-5 h-5" />
-                  Thông tin khách hàng
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Họ tên *</label>
-                    <input
-                      type="text"
-                      value={formData.ho_ten}
-                      onChange={(e) => setFormData({ ...formData, ho_ten: e.target.value })}
-                      className="input-field"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="input-field"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
-                    <input
-                      type="tel"
-                      value={formData.so_dien_thoai}
-                      onChange={(e) => setFormData({ ...formData, so_dien_thoai: e.target.value })}
-                      className="input-field"
-                    />
-                  </div>
-                </div>
-              </div>
+            const createResponse = await authAPI.register({
+                ho_ten,
+                email,
+                so_dien_thoai,
+                mat_khau: '123456'
+            });
 
-              {/* Thông tin đơn hàng */}
-              <div>
-                <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <CalendarIcon className="w-5 h-5" />
-                  Thông tin đơn hàng
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Chọn lịch khởi hành *</label>
-                    <select
-                      value={formData.ma_lich_khoi_hanh}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setFormData({ ...formData, ma_lich_khoi_hanh: val });
-                      }}
-                      className="input-field"
-                      required
-                    >
-                      <option value="">-- Chọn lịch khởi hành --</option>
-                      {schedules.map((s) => (
-                        <option key={s.ma_lich_khoi_hanh} value={s.ma_lich_khoi_hanh}>
-                          {s.ten_tour} - {formatDate(s.ngay_khoi_hanh)} - {formatCurrency(s.gia_nguoi_lon)}/người lớn
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+            if (createResponse.data.success) {
+                const newUserResponse = await adminAPI.getUsers({ search: email, limit: 1 });
+                const newUsers = newUserResponse.data.data.items || [];
+                if (newUsers.length > 0) {
+                    return newUsers[0].ma_nguoi_dung;
+                }
+            }
+            throw new Error('Không thể tạo tài khoản khách hàng');
+        } catch (error) {
+            console.error('Find or create user error:', error);
+            throw error;
+        }
+    };
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng người lớn</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={formData.so_luong_nguoi_lon}
-                        onChange={(e) => setFormData({ ...formData, so_luong_nguoi_lon: parseInt(e.target.value) || 0 })}
-                        className="input-field"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng trẻ em</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={formData.so_luong_tre_em}
-                        onChange={(e) => setFormData({ ...formData, so_luong_tre_em: parseInt(e.target.value) || 0 })}
-                        className="input-field"
-                      />
-                    </div>
-                  </div>
+    // ⭐ HANDLE CONFIRM
+    const handleConfirm = (id) => {
+        if (window.confirm('Xác nhận duyệt đơn hàng này?')) {
+            setActionLoading(prev => ({ ...prev, confirm: id }));
+            confirmMutation.mutate(id);
+        }
+    };
 
-                  {/* ⭐ HIỂN THỊ GIÁ TỰ TÍNH */}
-                  {scheduleInfo && (
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Người lớn x {formData.so_luong_nguoi_lon || 0}</span>
-                        <span>{formatCurrency((scheduleInfo.gia_nguoi_lon || 0) * (formData.so_luong_nguoi_lon || 0))}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Trẻ em x {formData.so_luong_tre_em || 0}</span>
-                        <span>{formatCurrency((scheduleInfo.gia_tre_em || 0) * (formData.so_luong_tre_em || 0))}</span>
-                      </div>
-                      <div className="border-t pt-2 flex justify-between font-bold">
-                        <span>Tổng tiền</span>
-                        <span className="text-primary-500">{formatCurrency(formData.tong_tien || 0)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm text-gray-500">
-                        <span>Tiền cọc (30%)</span>
-                        <span>{formatCurrency(formData.tien_coc || 0)}</span>
-                      </div>
-                    </div>
-                  )}
+    // ⭐ HANDLE CANCEL
+    const handleCancel = () => {
+        if (!cancelReason.trim()) {
+            toast.warning('Vui lòng nhập lý do hủy');
+            return;
+        }
+        setActionLoading(prev => ({ ...prev, cancel: selectedBooking?.ma_don_hang }));
+        cancelMutation.mutate({ 
+            id: selectedBooking?.ma_don_hang, 
+            ly_do: cancelReason 
+        });
+    };
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái đơn</label>
-                      <select
-                        value={formData.trang_thai_don_hang}
-                        onChange={(e) => setFormData({ ...formData, trang_thai_don_hang: e.target.value })}
-                        className="input-field"
-                      >
-                        <option value="Chờ xác nhận">Chờ xác nhận</option>
-                        <option value="Đã xác nhận">Đã xác nhận</option>
-                        <option value="Đang diễn ra">Đang diễn ra</option>
-                        <option value="Đã hoàn thành">Đã hoàn thành</option>
-                        <option value="Đã hủy">Đã hủy</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái thanh toán</label>
-                      <select
-                        value={formData.trang_thai_thanh_toan}
-                        onChange={(e) => setFormData({ ...formData, trang_thai_thanh_toan: e.target.value })}
-                        className="input-field"
-                      >
-                        <option value="Chưa thanh toán">Chưa thanh toán</option>
-                        <option value="Đã đặt cọc">Đã đặt cọc</option>
-                        <option value="Đã thanh toán">Đã thanh toán</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
+    const openCancelModal = (booking) => {
+        setSelectedBooking(booking);
+        setCancelReason('');
+        setShowCancelModal(true);
+    };
 
-              <div className="flex gap-3 pt-4">
-                <button type="submit" disabled={loading} className="btn-primary flex-1">
-                  {loading ? 'Đang xử lý...' : 'Thêm đơn hàng'}
-                </button>
-                <button type="button" onClick={() => { setShowAddModal(false); resetForm(); }} className="btn-secondary flex-1">Hủy</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+    const handleViewDetail = (booking) => {
+        setSelectedBooking(booking);
+        setShowDetailModal(true);
+    };
 
-      {/* ⭐ MODAL SỬA ĐƠN HÀNG - Giữ nguyên */}
-      {showEditModal && selectedBooking && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-gray-800">Sửa đơn hàng #{selectedBooking.ma_don_hang}</h2>
-              <button onClick={() => setShowEditModal(false)} className="text-gray-500 hover:text-gray-700">
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
+    const handleEdit = (booking) => {
+        setSelectedBooking(booking);
+        const schedule = schedules.find(s => s.ma_lich_khoi_hanh === booking.ma_lich_khoi_hanh);
+        setScheduleInfo(schedule || null);
+        
+        setFormData({
+            ho_ten: booking.nguoiDung?.ho_ten || '',
+            email: booking.nguoiDung?.email || '',
+            so_dien_thoai: booking.nguoiDung?.so_dien_thoai || '',
+            ma_nguoi_dung: booking.ma_nguoi_dung,
+            ma_lich_khoi_hanh: booking.ma_lich_khoi_hanh,
+            so_luong_nguoi_lon: booking.so_luong_nguoi_lon,
+            so_luong_tre_em: booking.so_luong_tre_em || 0,
+            tong_tien: booking.tong_tien,
+            tien_coc: booking.tien_coc || 0,
+            trang_thai_thanh_toan: booking.trang_thai_thanh_toan,
+            trang_thai_don_hang: booking.trang_thai_don_hang,
+            mat_khau: '123456'
+        });
+        setShowEditModal(true);
+    };
 
-            <form onSubmit={handleEditSubmit} className="space-y-4">
-              {/* Thông tin khách hàng */}
-              <div className="border-b pb-4">
-                <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <UserIcon className="w-5 h-5" />
-                  Thông tin khách hàng
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Họ tên</label>
-                    <input type="text" value={formData.ho_ten} className="input-field bg-gray-100" readOnly />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" value={formData.email} className="input-field bg-gray-100" readOnly />
-                  </div>
-                </div>
-              </div>
+    const handleAdd = () => {
+        resetForm();
+        setScheduleInfo(null);
+        setShowAddModal(true);
+    };
 
-              {/* Thông tin đơn hàng */}
-              <div>
-                <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <CalendarIcon className="w-5 h-5" />
-                  Thông tin đơn hàng
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Lịch khởi hành *</label>
-                    <select
-                      value={formData.ma_lich_khoi_hanh}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setFormData({ ...formData, ma_lich_khoi_hanh: val });
-                      }}
-                      className="input-field"
-                      required
-                    >
-                      {schedules.map((s) => (
-                        <option key={s.ma_lich_khoi_hanh} value={s.ma_lich_khoi_hanh}>
-                          {s.ten_tour} - {formatDate(s.ngay_khoi_hanh)} - {formatCurrency(s.gia_nguoi_lon)}/người lớn
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+    const resetForm = () => {
+        setFormData({
+            ho_ten: '',
+            email: '',
+            so_dien_thoai: '',
+            mat_khau: '123456',
+            ma_nguoi_dung: '',
+            ma_lich_khoi_hanh: '',
+            so_luong_nguoi_lon: 1,
+            so_luong_tre_em: 0,
+            tong_tien: 0,
+            tien_coc: 0,
+            trang_thai_thanh_toan: 'Chưa thanh toán',
+            trang_thai_don_hang: 'Chờ xác nhận'
+        });
+        setScheduleInfo(null);
+    };
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Người lớn</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={formData.so_luong_nguoi_lon}
-                        onChange={(e) => setFormData({ ...formData, so_luong_nguoi_lon: parseInt(e.target.value) || 0 })}
-                        className="input-field"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Trẻ em</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={formData.so_luong_tre_em}
-                        onChange={(e) => setFormData({ ...formData, so_luong_tre_em: parseInt(e.target.value) || 0 })}
-                        className="input-field"
-                      />
-                    </div>
-                  </div>
+    const handleAddSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
 
-                  {/* ⭐ HIỂN THỊ GIÁ TỰ TÍNH */}
-                  {scheduleInfo && (
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Người lớn x {formData.so_luong_nguoi_lon || 0}</span>
-                        <span>{formatCurrency((scheduleInfo.gia_nguoi_lon || 0) * (formData.so_luong_nguoi_lon || 0))}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Trẻ em x {formData.so_luong_tre_em || 0}</span>
-                        <span>{formatCurrency((scheduleInfo.gia_tre_em || 0) * (formData.so_luong_tre_em || 0))}</span>
-                      </div>
-                      <div className="border-t pt-2 flex justify-between font-bold">
-                        <span>Tổng tiền</span>
-                        <span className="text-primary-500">{formatCurrency(formData.tong_tien || 0)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm text-gray-500">
-                        <span>Tiền cọc (30%)</span>
-                        <span>{formatCurrency(formData.tien_coc || 0)}</span>
-                      </div>
-                    </div>
-                  )}
+        try {
+            if (!formData.ma_lich_khoi_hanh) {
+                toast.warning('Vui lòng chọn lịch khởi hành');
+                setLoading(false);
+                return;
+            }
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái đơn</label>
-                      <select
-                        value={formData.trang_thai_don_hang}
-                        onChange={(e) => setFormData({ ...formData, trang_thai_don_hang: e.target.value })}
-                        className="input-field"
-                      >
-                        <option value="Chờ xác nhận">Chờ xác nhận</option>
-                        <option value="Đã xác nhận">Đã xác nhận</option>
-                        <option value="Đang diễn ra">Đang diễn ra</option>
-                        <option value="Đã hoàn thành">Đã hoàn thành</option>
-                        <option value="Đã hủy">Đã hủy</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái thanh toán</label>
-                      <select
-                        value={formData.trang_thai_thanh_toan}
-                        onChange={(e) => setFormData({ ...formData, trang_thai_thanh_toan: e.target.value })}
-                        className="input-field"
-                      >
-                        <option value="Chưa thanh toán">Chưa thanh toán</option>
-                        <option value="Đã đặt cọc">Đã đặt cọc</option>
-                        <option value="Đã thanh toán">Đã thanh toán</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            const userId = await findOrCreateUser(
+                formData.email,
+                formData.ho_ten,
+                formData.so_dien_thoai
+            );
 
-              <div className="flex gap-3 pt-4">
-                <button type="submit" disabled={loading} className="btn-primary flex-1">
-                  {loading ? 'Đang xử lý...' : 'Cập nhật'}
-                </button>
-                <button type="button" onClick={() => setShowEditModal(false)} className="btn-secondary flex-1">Hủy</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            const bookingData = {
+                ma_nguoi_dung: userId,
+                ma_lich_khoi_hanh: parseInt(formData.ma_lich_khoi_hanh),
+                so_luong_nguoi_lon: parseInt(formData.so_luong_nguoi_lon) || 0,
+                so_luong_tre_em: parseInt(formData.so_luong_tre_em) || 0,
+                tong_tien: parseFloat(formData.tong_tien) || 0,
+                trang_thai_thanh_toan: formData.trang_thai_thanh_toan,
+                trang_thai_don_hang: formData.trang_thai_don_hang,
+                thong_tin_khach: [{ 
+                    ho_ten: formData.ho_ten, 
+                    loai_khach: 'nguoi_lon' 
+                }]
+            };
 
-      {/* ⭐ MODAL CHI TIẾT - Giữ nguyên */}
-      {showDetailModal && selectedBooking && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-gray-800">Chi tiết đơn hàng #{selectedBooking.ma_don_hang}</h2>
-              <button onClick={() => setShowDetailModal(false)} className="text-gray-500 hover:text-gray-700">
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Khách hàng</p>
-                  <p className="font-medium">{selectedBooking.nguoiDung?.ho_ten}</p>
-                  <p className="text-sm">{selectedBooking.nguoiDung?.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Tour</p>
-                  <p className="font-medium">{selectedBooking.lichKhoiHanh?.tour?.ten_tour}</p>
-                  <p className="text-sm">Ngày KH: {formatDate(selectedBooking.lichKhoiHanh?.ngay_khoi_hanh)}</p>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Thông tin khách</p>
-                <div className="bg-gray-50 rounded-lg p-3">Người lớn: {selectedBooking.so_luong_nguoi_lon}, Trẻ em: {selectedBooking.so_luong_tre_em}</div>
-              </div>
-              <div className="border-t pt-4">
-                <p className="text-sm text-gray-500">Thanh toán</p>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p>Tổng tiền: <strong>{formatCurrency(selectedBooking.tong_tien)}</strong></p>
-                  <p>Tiền cọc: {formatCurrency(selectedBooking.tien_coc || 0)}</p>
-                  <p>Trạng thái: {selectedBooking.trang_thai_thanh_toan}</p>
-                  <p>NV phụ trách: {selectedBooking.nhanVienPhuTrach?.nguoiDung?.ho_ten || 'Chưa phân công'}</p>
-                </div>
-              </div>
-              <div className="flex gap-3 pt-4">
-                {selectedBooking.trang_thai_don_hang === 'Chờ xác nhận' && (
-                  <button 
-                    onClick={() => { 
-                      handleConfirm(selectedBooking.ma_don_hang); 
-                      setShowDetailModal(false); 
-                    }} 
-                    className="btn-primary"
-                    disabled={actionLoading.confirm === selectedBooking.ma_don_hang}
-                  >
-                    {actionLoading.confirm === selectedBooking.ma_don_hang ? 'Đang xử lý...' : 'Duyệt đơn'}
-                  </button>
+            await addMutation.mutateAsync(bookingData);
+        } catch (error) {
+            toast.error(error.message || '❌ Thêm đơn hàng thất bại');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+
+        try {
+            if (!formData.ma_lich_khoi_hanh) {
+                toast.warning('Vui lòng chọn lịch khởi hành');
+                setLoading(false);
+                return;
+            }
+
+            const bookingData = {
+                ma_nguoi_dung: parseInt(formData.ma_nguoi_dung),
+                ma_lich_khoi_hanh: parseInt(formData.ma_lich_khoi_hanh),
+                so_luong_nguoi_lon: parseInt(formData.so_luong_nguoi_lon) || 0,
+                so_luong_tre_em: parseInt(formData.so_luong_tre_em) || 0,
+                tong_tien: parseFloat(formData.tong_tien) || 0,
+                trang_thai_thanh_toan: formData.trang_thai_thanh_toan,
+                trang_thai_don_hang: formData.trang_thai_don_hang,
+                thong_tin_khach: [{ 
+                    ho_ten: formData.ho_ten, 
+                    loai_khach: 'nguoi_lon' 
+                }]
+            };
+
+            await updateMutation.mutateAsync({ 
+                id: selectedBooking.ma_don_hang, 
+                data: bookingData 
+            });
+        } catch (error) {
+            toast.error(error.message || '❌ Cập nhật đơn hàng thất bại');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ⭐ RENDER BUTTON CONFIRM VỚI LOADING
+    const renderConfirmButton = (booking) => {
+        const isLoading = actionLoading.confirm === booking.ma_don_hang;
+        if (booking.trang_thai_don_hang !== 'Chờ xác nhận') return null;
+        
+        return (
+            <button
+                onClick={() => handleConfirm(booking.ma_don_hang)}
+                disabled={isLoading}
+                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Duyệt đơn"
+            >
+                {isLoading ? (
+                    <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                ) : (
+                    <CheckIcon className="w-5 h-5" />
                 )}
-                <button onClick={() => setShowDetailModal(false)} className="btn-secondary">Đóng</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </button>
+        );
+    };
 
-      {/* ⭐ MODAL HỦY ĐƠN - CÓ LOADING */}
-      {showCancelModal && selectedBooking && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">Hủy đơn hàng #{selectedBooking.ma_don_hang}</h3>
-            
-            {/* ⭐ HIỂN THỊ TRẠNG THÁI LOADING */}
-            {actionLoading.cancel === selectedBooking.ma_don_hang ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent mx-auto mb-4"></div>
-                <p className="text-gray-600">Đang xử lý hủy đơn hàng...</p>
-              </div>
-            ) : (
-              <>
-                <textarea
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  className="input-field"
-                  rows="3"
-                  placeholder="Nhập lý do hủy..."
-                />
-                <div className="flex gap-3 mt-4">
-                  <button onClick={handleCancel} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 flex-1">
-                    Xác nhận hủy
-                  </button>
-                  <button onClick={() => { setShowCancelModal(false); setCancelReason(''); }} className="btn-secondary flex-1">
-                    Hủy
-                  </button>
+    // ⭐ RENDER BUTTON CANCEL VỚI LOADING
+    const renderCancelButton = (booking) => {
+        const isLoading = actionLoading.cancel === booking.ma_don_hang;
+        if (booking.trang_thai_don_hang !== 'Chờ xác nhận' && booking.trang_thai_don_hang !== 'Đã xác nhận') return null;
+        
+        return (
+            <button
+                onClick={() => openCancelModal(booking)}
+                disabled={isLoading}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Hủy đơn"
+            >
+                {isLoading ? (
+                    <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                ) : (
+                    <XMarkIcon className="w-5 h-5" />
+                )}
+            </button>
+        );
+    };
+
+    // ⭐ RENDER BUTTON ASSIGN STAFF
+    const renderAssignStaffButton = (booking) => {
+        const isLoading = actionLoading.assign === booking.ma_don_hang;
+        const currentStaff = staffList.find(s => s.ma_nhan_vien === booking.ma_nhan_vien_phu_trach);
+        
+        return (
+            <button
+                onClick={() => handleOpenAssignStaff(booking)}
+                disabled={isLoading}
+                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={currentStaff ? `Phụ trách: ${currentStaff.ho_ten}` : 'Chưa phân công - Nhấn để chọn'}
+            >
+                {isLoading ? (
+                    <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                ) : (
+                    <UserPlusIcon className="w-5 h-5" />
+                )}
+            </button>
+        );
+    };
+
+    // ⭐ RENDER STAFF DISPLAY
+    const renderStaffDisplay = (booking) => {
+        const currentStaff = staffList.find(s => s.ma_nhan_vien === booking.ma_nhan_vien_phu_trach);
+        
+        if (currentStaff) {
+            return (
+                <div className="flex items-center gap-2">
+                    <img
+                        src={currentStaff.anh_dai_dien || 'https://via.placeholder.com/32'}
+                        alt={currentStaff.ho_ten}
+                        className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                        onError={(e) => { e.target.src = 'https://via.placeholder.com/32'; }}
+                    />
+                    <div className="text-left">
+                        <p className="text-sm font-medium text-gray-700">{currentStaff.ho_ten}</p>
+                        <p className="text-xs text-gray-400">{currentStaff.chuc_vu || 'Nhân viên'}</p>
+                    </div>
                 </div>
-              </>
+            );
+        }
+        
+        return (
+            <span className="text-sm text-gray-400 italic">Chưa phân công</span>
+        );
+    };
+
+    if (isLoading) return <LoadingSpinner />;
+
+    return (
+        <AdminLayout>
+            <div className="p-6">
+                {/* Header */}
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-800">Quản lý đơn hàng</h1>
+                        <p className="text-gray-600">Xem, xử lý và quản lý các đơn hàng</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button onClick={() => refetch()} className="btn-secondary flex items-center gap-2">
+                            <ArrowPathIcon className="w-4 h-4" />
+                            Làm mới
+                        </button>
+                        <button onClick={handleAdd} className="btn-primary flex items-center gap-2">
+                            <PlusIcon className="w-5 h-5" />
+                            Thêm đơn hàng
+                        </button>
+                    </div>
+                </div>
+
+                {/* ⭐ THỐNG KÊ ĐƠN HÀNG */}
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
+                    <div className="bg-white rounded-xl shadow-sm p-4 text-center border border-gray-200">
+                        <div className="flex items-center justify-center mb-2">
+                            <ChartBarIcon className="w-6 h-6 text-blue-500" />
+                        </div>
+                        <p className="text-sm text-gray-500">Tổng đơn hàng</p>
+                        <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+                    </div>
+                    <div className="bg-yellow-50 rounded-xl shadow-sm p-4 text-center border border-yellow-200">
+                        <div className="flex items-center justify-center mb-2">
+                            <ClockIcon className="w-6 h-6 text-yellow-500" />
+                        </div>
+                        <p className="text-sm text-yellow-600">Chờ xác nhận</p>
+                        <p className="text-2xl font-bold text-yellow-600">{stats.choXacNhan}</p>
+                    </div>
+                    <div className="bg-green-50 rounded-xl shadow-sm p-4 text-center border border-green-200">
+                        <div className="flex items-center justify-center mb-2">
+                            <CheckCircleIcon className="w-6 h-6 text-green-500" />
+                        </div>
+                        <p className="text-sm text-green-600">Đã xác nhận</p>
+                        <p className="text-2xl font-bold text-green-600">{stats.daXacNhan}</p>
+                    </div>
+                    <div className="bg-blue-50 rounded-xl shadow-sm p-4 text-center border border-blue-200">
+                        <div className="flex items-center justify-center mb-2">
+                            <CurrencyDollarIcon className="w-6 h-6 text-blue-500" />
+                        </div>
+                        <p className="text-sm text-blue-600">Đã thanh toán</p>
+                        <p className="text-2xl font-bold text-blue-600">{stats.daThanhToan}</p>
+                    </div>
+                    <div className="bg-red-50 rounded-xl shadow-sm p-4 text-center border border-red-200">
+                        <div className="flex items-center justify-center mb-2">
+                            <XCircleIcon className="w-6 h-6 text-red-500" />
+                        </div>
+                        <p className="text-sm text-red-600">Đã hủy</p>
+                        <p className="text-2xl font-bold text-red-600">{stats.daHuy}</p>
+                    </div>
+                </div>
+
+                {/* Bộ lọc */}
+                <div className="flex flex-wrap gap-4 mb-6">
+                    <button
+                        onClick={() => setShowMyBookings(!showMyBookings)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                            showMyBookings ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        }`}
+                    >
+                        <UserIcon className="w-5 h-5" />
+                        {showMyBookings ? '📋 Đơn hàng tôi quản lý' : '📋 Tất cả đơn hàng'}
+                    </button>
+
+                    <div className="flex flex-wrap gap-2">
+                        {['', 'Chờ xác nhận', 'Đã xác nhận', 'Đang diễn ra', 'Đã hoàn thành', 'Đã hủy'].map((status) => (
+                            <button
+                                key={status}
+                                onClick={() => setFilter(status)}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                                    filter === status ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                }`}
+                            >
+                                {status || 'Tất cả'}
+                            </button>
+                        ))}
+                    </div>
+
+                    <input
+                        type="text"
+                        placeholder="Tìm kiếm đơn hàng..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="input-field max-w-sm"
+                    />
+                </div>
+
+                {/* Bảng đơn hàng */}
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                    {error ? (
+                        <div className="p-6 text-center text-red-500">Có lỗi xảy ra khi tải danh sách đơn hàng</div>
+                    ) : bookings.length > 0 ? (
+                        <>
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã đơn</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khách hàng</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tour</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày KH</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng tiền</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NV phụ trách</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {bookings.map((booking) => (
+                                            <tr key={booking.ma_don_hang} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 font-medium">#{booking.ma_don_hang}</td>
+                                                <td className="px-6 py-4">
+                                                    <div>
+                                                        <p className="font-medium">{booking.nguoiDung?.ho_ten}</p>
+                                                        <p className="text-sm text-gray-500">{booking.nguoiDung?.email}</p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">{booking.lichKhoiHanh?.tour?.ten_tour || 'N/A'}</td>
+                                                <td className="px-6 py-4">{formatDate(booking.lichKhoiHanh?.ngay_khoi_hanh)}</td>
+                                                <td className="px-6 py-4 font-medium text-primary-500">
+                                                    {formatCurrency(booking.tong_tien)}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`badge badge-${getStatusColor(booking.trang_thai_don_hang)}`}>
+                                                        {booking.trang_thai_don_hang}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {renderStaffDisplay(booking)}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-1">
+                                                        <button onClick={() => handleViewDetail(booking)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Chi tiết">
+                                                            <EyeIcon className="w-5 h-5" />
+                                                        </button>
+                                                        <button onClick={() => handleEdit(booking)} className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg" title="Sửa">
+                                                            <PencilIcon className="w-5 h-5" />
+                                                        </button>
+                                                        {renderConfirmButton(booking)}
+                                                        {renderCancelButton(booking)}
+                                                        {renderAssignStaffButton(booking)}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {/* Pagination */}
+                            <div className="px-6 py-4 border-t flex justify-between items-center">
+                                <p className="text-sm text-gray-500">Hiển thị {bookings.length} / {total} đơn hàng</p>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 border rounded-lg disabled:opacity-50">Trước</button>
+                                    <span className="px-3 py-1">Trang {page} / {totalPages}</span>
+                                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 border rounded-lg disabled:opacity-50">Sau</button>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="p-12 text-center">
+                            <p className="text-gray-500">Không có đơn hàng nào</p>
+                            <button onClick={handleAdd} className="btn-primary mt-4">Thêm đơn hàng đầu tiên</button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* ⭐ MODAL THÊM ĐƠN HÀNG */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-2xl font-bold text-gray-800">Thêm đơn hàng mới</h2>
+                            <button onClick={() => { setShowAddModal(false); resetForm(); }} className="text-gray-500 hover:text-gray-700">
+                                <XMarkIcon className="w-6 h-6" />
+                            </button>
+                        </div>
+                        
+                        <div className="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+                            📝 Nếu khách hàng chưa có tài khoản, hệ thống sẽ tự động tạo với mật khẩu <strong>123456</strong>
+                        </div>
+
+                        <form onSubmit={handleAddSubmit} className="space-y-4">
+                            {/* Thông tin khách hàng */}
+                            <div className="border-b pb-4">
+                                <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                    <UserIcon className="w-5 h-5" />
+                                    Thông tin khách hàng
+                                </h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Họ tên *</label>
+                                        <input
+                                            type="text"
+                                            value={formData.ho_ten}
+                                            onChange={(e) => setFormData({ ...formData, ho_ten: e.target.value })}
+                                            className="input-field"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                                        <input
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            className="input-field"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+                                        <input
+                                            type="tel"
+                                            value={formData.so_dien_thoai}
+                                            onChange={(e) => setFormData({ ...formData, so_dien_thoai: e.target.value })}
+                                            className="input-field"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Thông tin đơn hàng */}
+                            <div>
+                                <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                    <CalendarIcon className="w-5 h-5" />
+                                    Thông tin đơn hàng
+                                </h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Chọn lịch khởi hành *</label>
+                                        <select
+                                            value={formData.ma_lich_khoi_hanh}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setFormData({ ...formData, ma_lich_khoi_hanh: val });
+                                            }}
+                                            className="input-field"
+                                            required
+                                        >
+                                            <option value="">-- Chọn lịch khởi hành --</option>
+                                            {schedules.map((s) => (
+                                                <option key={s.ma_lich_khoi_hanh} value={s.ma_lich_khoi_hanh}>
+                                                    {s.ten_tour} - {formatDate(s.ngay_khoi_hanh)} - {formatCurrency(s.gia_nguoi_lon)}/người lớn
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng người lớn</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={formData.so_luong_nguoi_lon}
+                                                onChange={(e) => setFormData({ ...formData, so_luong_nguoi_lon: parseInt(e.target.value) || 0 })}
+                                                className="input-field"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng trẻ em</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={formData.so_luong_tre_em}
+                                                onChange={(e) => setFormData({ ...formData, so_luong_tre_em: parseInt(e.target.value) || 0 })}
+                                                className="input-field"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* ⭐ HIỂN THỊ GIÁ TỰ TÍNH */}
+                                    {scheduleInfo && (
+                                        <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-600">Người lớn x {formData.so_luong_nguoi_lon || 0}</span>
+                                                <span>{formatCurrency((scheduleInfo.gia_nguoi_lon || 0) * (formData.so_luong_nguoi_lon || 0))}</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-600">Trẻ em x {formData.so_luong_tre_em || 0}</span>
+                                                <span>{formatCurrency((scheduleInfo.gia_tre_em || 0) * (formData.so_luong_tre_em || 0))}</span>
+                                            </div>
+                                            <div className="border-t pt-2 flex justify-between font-bold">
+                                                <span>Tổng tiền</span>
+                                                <span className="text-primary-500">{formatCurrency(formData.tong_tien || 0)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm text-gray-500">
+                                                <span>Tiền cọc (30%)</span>
+                                                <span>{formatCurrency(formData.tien_coc || 0)}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái đơn</label>
+                                            <select
+                                                value={formData.trang_thai_don_hang}
+                                                onChange={(e) => setFormData({ ...formData, trang_thai_don_hang: e.target.value })}
+                                                className="input-field"
+                                            >
+                                                <option value="Chờ xác nhận">Chờ xác nhận</option>
+                                                <option value="Đã xác nhận">Đã xác nhận</option>
+                                                <option value="Đang diễn ra">Đang diễn ra</option>
+                                                <option value="Đã hoàn thành">Đã hoàn thành</option>
+                                                <option value="Đã hủy">Đã hủy</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái thanh toán</label>
+                                            <select
+                                                value={formData.trang_thai_thanh_toan}
+                                                onChange={(e) => setFormData({ ...formData, trang_thai_thanh_toan: e.target.value })}
+                                                className="input-field"
+                                            >
+                                                <option value="Chưa thanh toán">Chưa thanh toán</option>
+                                                <option value="Đã đặt cọc">Đã đặt cọc</option>
+                                                <option value="Đã thanh toán">Đã thanh toán</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                                <button type="submit" disabled={loading} className="btn-primary flex-1">
+                                    {loading ? 'Đang xử lý...' : 'Thêm đơn hàng'}
+                                </button>
+                                <button type="button" onClick={() => { setShowAddModal(false); resetForm(); }} className="btn-secondary flex-1">Hủy</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
-          </div>
-        </div>
-      )}
-    </AdminLayout>
-  );
+
+            {/* ⭐ MODAL SỬA ĐƠN HÀNG */}
+            {showEditModal && selectedBooking && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-2xl font-bold text-gray-800">Sửa đơn hàng #{selectedBooking.ma_don_hang}</h2>
+                            <button onClick={() => setShowEditModal(false)} className="text-gray-500 hover:text-gray-700">
+                                <XMarkIcon className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleEditSubmit} className="space-y-4">
+                            {/* Thông tin khách hàng */}
+                            <div className="border-b pb-4">
+                                <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                    <UserIcon className="w-5 h-5" />
+                                    Thông tin khách hàng
+                                </h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Họ tên</label>
+                                        <input type="text" value={formData.ho_ten} className="input-field bg-gray-100" readOnly />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                        <input type="email" value={formData.email} className="input-field bg-gray-100" readOnly />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Thông tin đơn hàng */}
+                            <div>
+                                <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                    <CalendarIcon className="w-5 h-5" />
+                                    Thông tin đơn hàng
+                                </h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Lịch khởi hành *</label>
+                                        <select
+                                            value={formData.ma_lich_khoi_hanh}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setFormData({ ...formData, ma_lich_khoi_hanh: val });
+                                            }}
+                                            className="input-field"
+                                            required
+                                        >
+                                            {schedules.map((s) => (
+                                                <option key={s.ma_lich_khoi_hanh} value={s.ma_lich_khoi_hanh}>
+                                                    {s.ten_tour} - {formatDate(s.ngay_khoi_hanh)} - {formatCurrency(s.gia_nguoi_lon)}/người lớn
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Người lớn</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={formData.so_luong_nguoi_lon}
+                                                onChange={(e) => setFormData({ ...formData, so_luong_nguoi_lon: parseInt(e.target.value) || 0 })}
+                                                className="input-field"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Trẻ em</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={formData.so_luong_tre_em}
+                                                onChange={(e) => setFormData({ ...formData, so_luong_tre_em: parseInt(e.target.value) || 0 })}
+                                                className="input-field"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {scheduleInfo && (
+                                        <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-600">Người lớn x {formData.so_luong_nguoi_lon || 0}</span>
+                                                <span>{formatCurrency((scheduleInfo.gia_nguoi_lon || 0) * (formData.so_luong_nguoi_lon || 0))}</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-600">Trẻ em x {formData.so_luong_tre_em || 0}</span>
+                                                <span>{formatCurrency((scheduleInfo.gia_tre_em || 0) * (formData.so_luong_tre_em || 0))}</span>
+                                            </div>
+                                            <div className="border-t pt-2 flex justify-between font-bold">
+                                                <span>Tổng tiền</span>
+                                                <span className="text-primary-500">{formatCurrency(formData.tong_tien || 0)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm text-gray-500">
+                                                <span>Tiền cọc (30%)</span>
+                                                <span>{formatCurrency(formData.tien_coc || 0)}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái đơn</label>
+                                            <select
+                                                value={formData.trang_thai_don_hang}
+                                                onChange={(e) => setFormData({ ...formData, trang_thai_don_hang: e.target.value })}
+                                                className="input-field"
+                                            >
+                                                <option value="Chờ xác nhận">Chờ xác nhận</option>
+                                                <option value="Đã xác nhận">Đã xác nhận</option>
+                                                <option value="Đang diễn ra">Đang diễn ra</option>
+                                                <option value="Đã hoàn thành">Đã hoàn thành</option>
+                                                <option value="Đã hủy">Đã hủy</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái thanh toán</label>
+                                            <select
+                                                value={formData.trang_thai_thanh_toan}
+                                                onChange={(e) => setFormData({ ...formData, trang_thai_thanh_toan: e.target.value })}
+                                                className="input-field"
+                                            >
+                                                <option value="Chưa thanh toán">Chưa thanh toán</option>
+                                                <option value="Đã đặt cọc">Đã đặt cọc</option>
+                                                <option value="Đã thanh toán">Đã thanh toán</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                                <button type="submit" disabled={loading} className="btn-primary flex-1">
+                                    {loading ? 'Đang xử lý...' : 'Cập nhật'}
+                                </button>
+                                <button type="button" onClick={() => setShowEditModal(false)} className="btn-secondary flex-1">Hủy</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ⭐ MODAL CHI TIẾT */}
+            {showDetailModal && selectedBooking && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-2xl font-bold text-gray-800">Chi tiết đơn hàng #{selectedBooking.ma_don_hang}</h2>
+                            <button onClick={() => setShowDetailModal(false)} className="text-gray-500 hover:text-gray-700">
+                                <XMarkIcon className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-sm text-gray-500">Khách hàng</p>
+                                    <p className="font-medium">{selectedBooking.nguoiDung?.ho_ten}</p>
+                                    <p className="text-sm">{selectedBooking.nguoiDung?.email}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Tour</p>
+                                    <p className="font-medium">{selectedBooking.lichKhoiHanh?.tour?.ten_tour}</p>
+                                    <p className="text-sm">Ngày KH: {formatDate(selectedBooking.lichKhoiHanh?.ngay_khoi_hanh)}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Thông tin khách</p>
+                                <div className="bg-gray-50 rounded-lg p-3">Người lớn: {selectedBooking.so_luong_nguoi_lon}, Trẻ em: {selectedBooking.so_luong_tre_em}</div>
+                            </div>
+                            <div className="border-t pt-4">
+                                <p className="text-sm text-gray-500">Thanh toán</p>
+                                <div className="bg-gray-50 rounded-lg p-3">
+                                    <p>Tổng tiền: <strong>{formatCurrency(selectedBooking.tong_tien)}</strong></p>
+                                    <p>Tiền cọc: {formatCurrency(selectedBooking.tien_coc || 0)}</p>
+                                    <p>Trạng thái: {selectedBooking.trang_thai_thanh_toan}</p>
+                                    <p>NV phụ trách: {selectedBooking.nhanVienPhuTrach?.nguoiDung?.ho_ten || 'Chưa phân công'}</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                {selectedBooking.trang_thai_don_hang === 'Chờ xác nhận' && (
+                                    <button 
+                                        onClick={() => { 
+                                            handleConfirm(selectedBooking.ma_don_hang); 
+                                            setShowDetailModal(false); 
+                                        }} 
+                                        className="btn-primary"
+                                        disabled={actionLoading.confirm === selectedBooking.ma_don_hang}
+                                    >
+                                        {actionLoading.confirm === selectedBooking.ma_don_hang ? 'Đang xử lý...' : 'Duyệt đơn'}
+                                    </button>
+                                )}
+                                <button onClick={() => setShowDetailModal(false)} className="btn-secondary">Đóng</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ⭐ MODAL HỦY ĐƠN */}
+            {showCancelModal && selectedBooking && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl max-w-md w-full p-6">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">Hủy đơn hàng #{selectedBooking.ma_don_hang}</h3>
+                        
+                        {actionLoading.cancel === selectedBooking.ma_don_hang ? (
+                            <div className="text-center py-8">
+                                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent mx-auto mb-4"></div>
+                                <p className="text-gray-600">Đang xử lý hủy đơn hàng...</p>
+                            </div>
+                        ) : (
+                            <>
+                                <textarea
+                                    value={cancelReason}
+                                    onChange={(e) => setCancelReason(e.target.value)}
+                                    className="input-field"
+                                    rows="3"
+                                    placeholder="Nhập lý do hủy..."
+                                />
+                                <div className="flex gap-3 mt-4">
+                                    <button onClick={handleCancel} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 flex-1">
+                                        Xác nhận hủy
+                                    </button>
+                                    <button onClick={() => { setShowCancelModal(false); setCancelReason(''); }} className="btn-secondary flex-1">
+                                        Hủy
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* ⭐ MODAL PHÂN CÔNG NHÂN VIÊN */}
+            {showAssignStaffModal && assigningBooking && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl max-w-md w-full p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-gray-800">
+                                Phân công nhân viên phụ trách
+                            </h3>
+                            <button 
+                                onClick={() => {
+                                    setShowAssignStaffModal(false);
+                                    setAssigningBooking(null);
+                                    setSelectedStaff('');
+                                }}
+                                className="text-gray-500 hover:text-gray-700"
+                            >
+                                <XMarkIcon className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="mb-4">
+                            <p className="text-sm text-gray-500">Đơn hàng</p>
+                            <p className="font-medium">#{assigningBooking.ma_don_hang} - {assigningBooking.lichKhoiHanh?.tour?.ten_tour}</p>
+                            <p className="text-sm text-gray-500 mt-2">Khách hàng</p>
+                            <p className="font-medium">{assigningBooking.nguoiDung?.ho_ten}</p>
+                        </div>
+
+                        {actionLoading.assign === assigningBooking.ma_don_hang ? (
+                            <div className="text-center py-8">
+                                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent mx-auto mb-4"></div>
+                                <p className="text-gray-600">Đang xử lý...</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Chọn nhân viên phụ trách
+                                    </label>
+                                    <select
+                                        value={selectedStaff}
+                                        onChange={(e) => setSelectedStaff(e.target.value)}
+                                        className="input-field"
+                                    >
+                                        <option value="">-- Không phân công --</option>
+                                        {staffList.map((staff) => (
+                                            <option key={staff.ma_nhan_vien} value={staff.ma_nhan_vien}>
+                                                {staff.ho_ten} - {staff.chuc_vu || 'Nhân viên'} ({staff.email})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {selectedStaff && (
+                                    <div className="mb-4 p-3 bg-blue-50 rounded-lg flex items-center gap-3">
+                                        {(() => {
+                                            const staff = staffList.find(s => s.ma_nhan_vien === parseInt(selectedStaff));
+                                            return staff ? (
+                                                <>
+                                                    <img
+                                                        src={staff.anh_dai_dien || 'https://via.placeholder.com/40'}
+                                                        alt={staff.ho_ten}
+                                                        className="w-10 h-10 rounded-full object-cover border border-blue-200"
+                                                        onError={(e) => { e.target.src = 'https://via.placeholder.com/40'; }}
+                                                    />
+                                                    <div>
+                                                        <p className="font-medium text-blue-800">{staff.ho_ten}</p>
+                                                        <p className="text-sm text-blue-600">{staff.chuc_vu || 'Nhân viên'} - {staff.phong_ban || 'Kinh doanh'}</p>
+                                                    </div>
+                                                </>
+                                            ) : null;
+                                        })()}
+                                    </div>
+                                )}
+
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleAssignStaff}
+                                        className="btn-primary flex-1"
+                                    >
+                                        {selectedStaff ? 'Phân công' : 'Hủy phân công'}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setShowAssignStaffModal(false);
+                                            setAssigningBooking(null);
+                                            setSelectedStaff('');
+                                        }}
+                                        className="btn-secondary flex-1"
+                                    >
+                                        Hủy
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+        </AdminLayout>
+    );
 };
 
 export default AdminBookings;

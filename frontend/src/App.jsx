@@ -1,4 +1,4 @@
-// frontend/src/App.jsx
+// frontend/src/App.jsx - CẬP NHẬT THÊM ROUTES
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
@@ -19,7 +19,7 @@ import PaymentPage from './pages/PaymentPage';
 import PaymentResultPage from './pages/PaymentResultPage';
 import MyBookingsPage from './pages/MyBookingsPage';
 import ProfilePage from './pages/ProfilePage';
-import DiscountsPage from './pages/DiscountsPage'; // ⭐ THÊM IMPORT
+import DiscountsPage from './pages/DiscountsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminTours from './pages/AdminTours';
 import AdminBookings from './pages/AdminBookings';
@@ -27,6 +27,8 @@ import AdminUsers from './pages/AdminUsers';
 import AdminDiscounts from './pages/AdminDiscounts';
 import AdminReports from './pages/AdminReports';
 import AdminRefunds from './pages/AdminRefunds';
+import AdminVehicles from './pages/AdminVehicles';      // ⭐ THÊM
+import AdminSchedules from './pages/AdminSchedules';    // ⭐ THÊM
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import ForgotPassword from './components/auth/ForgotPassword';
@@ -55,7 +57,7 @@ function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/tours" element={<ToursPage />} />
                     <Route path="/tours/:id" element={<TourDetailPage />} />
-                    <Route path="/discounts" element={<DiscountsPage />} /> {/* ⭐ THÊM ROUTE */}
+                    <Route path="/discounts" element={<DiscountsPage />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -82,6 +84,8 @@ function App() {
                         <Route path="/admin/discounts" element={<AdminDiscounts />} />
                         <Route path="/admin/reports" element={<AdminReports />} />
                         <Route path="/admin/refunds" element={<AdminRefunds />} />
+                        <Route path="/admin/vehicles" element={<AdminVehicles />} />      {/* ⭐ THÊM */}
+                        <Route path="/admin/schedules" element={<AdminSchedules />} />    {/* ⭐ THÊM */}
                     </Route>
 
                     {/* Fallback */}

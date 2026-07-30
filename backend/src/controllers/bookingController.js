@@ -1956,6 +1956,146 @@ export const rejectRefund = async (req, res) => {
         });
     }
 };
+// backend/src/controllers/bookingController.js
+
+// ============================================
+// ⭐ ADMIN: PHÂN CÔNG NHÂN VIÊN PHỤ TRÁCH ĐƠN HÀNG
+// ============================================
+export const assignStaff = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { ma_nhan_vien } = req.body;
+
+        console.log('📝 Assign Staff - Order ID:', id);
+        console.log('📝 Staff ID:', ma_nhan_vien);
+
+        // Kiểm tra đơn hàng tồn tại
+        const booking = await DonDatTour.findByPk(id);
+        if (!booking) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy đơn hàng'
+            });
+        }
+
+        // Kiểm tra nhân viên tồn tại (nếu có chọn)
+        let staffInfo = null;
+        if (ma_nhan_vien) {
+            staffInfo = await NhanVien.findByPk(ma_nhan_vien, {
+                include: [
+                    {
+                        model: NguoiDung,
+                        as: 'nguoiDung',
+                        attributes: ['ho_ten', 'email', 'anh_dai_dien']
+                    }
+                ]
+            });
+
+            if (!staffInfo) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy nhân viên'
+                });
+            }
+        }
+
+        // Cập nhật
+        await booking.update({
+            ma_nhan_vien_phu_trach: ma_nhan_vien || null,
+            ngay_cap_nhat: new Date()
+        });
+
+        // Lấy lại thông tin đầy đủ
+        const updatedBooking = await DonDatTour.findByPk(id, {
+            include: [
+                {
+                    model: NhanVien,
+                    as: 'nhanVienPhuTrach',
+                    include: [
+                        {
+                            model: NguoiDung,
+                            as: 'nguoiDung',
+                            attributes: ['ho_ten', 'email', 'anh_dai_dien']
+                        }
+                    ]
+                },
+                {
+                    model: LichKhoiHanh,
+                    as: 'lichKhoiHanh',
+                    include: [{ model: Tour, as: 'tour' }]
+                },
+                {
+                    model: NguoiDung,
+                    as: 'nguoiDung',
+                    attributes: ['ho_ten', 'email', 'so_dien_thoai']
+                },
+                {
+                    model: ThanhToan,
+                    as: 'thanhToan'
+                }
+            ]
+        });
+
+        res.json({
+            success: true,
+            message: ma_nhan_vien ? 'Phân công nhân viên thành công' : 'Đã hủy phân công nhân viên',
+            data: updatedBooking
+        });
+
+    } catch (error) {
+        console.error('❌ Assign staff error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi phân công nhân viên: ' + error.message
+        });
+    }
+};
+
+// ============================================
+// ⭐ ADMIN: LẤY DANH SÁCH NHÂN VIÊN
+// ============================================
+export const getStaffList = async (req, res) => {
+    try {
+        const staffs = await NhanVien.findAll({
+            include: [
+                {
+                    model: NguoiDung,
+                    as: 'nguoiDung',
+                    attributes: ['ma_nguoi_dung', 'ho_ten', 'email', 'anh_dai_dien', 'so_dien_thoai']
+                }
+            ],
+            where: {
+                deleted_at: null
+            },
+            order: [
+                [{ model: NguoiDung, as: 'nguoiDung' }, 'ho_ten', 'ASC']
+            ]
+        });
+
+        const result = staffs.map(staff => ({
+            ma_nhan_vien: staff.ma_nhan_vien,
+            ma_nguoi_dung: staff.ma_nguoi_dung,
+            ho_ten: staff.nguoiDung?.ho_ten || 'Chưa có tên',
+            email: staff.nguoiDung?.email || '',
+            so_dien_thoai: staff.nguoiDung?.so_dien_thoai || '',
+            chuc_vu: staff.chuc_vu || 'Nhân viên',
+            phong_ban: staff.phong_ban || '',
+            anh_dai_dien: staff.nguoiDung?.anh_dai_dien || null,
+            ngay_vao_lam: staff.ngay_vao_lam
+        }));
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error('❌ Get staff list error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi lấy danh sách nhân viên: ' + error.message
+        });
+    }
+};
 // ============================================
 // ADMIN: THỐNG KÊ HOÀN TIỀN
 // ============================================

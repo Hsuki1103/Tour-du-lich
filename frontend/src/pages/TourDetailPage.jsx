@@ -1,3 +1,4 @@
+// frontend/src/pages/TourDetailPage.jsx
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
@@ -5,20 +6,19 @@ import { toursAPI } from '../api/tours';
 import { useAuth } from '../hooks/useAuth';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ReviewList from '../components/review/ReviewList';
+import { formatCurrency, formatDate, getImageUrl } from '../utils/helpers';
 import { 
   CalendarIcon, 
   MapPinIcon, 
-  UserIcon, 
   ClockIcon,
-  GlobeAltIcon,  // Thêm icon cho khu vực
   StarIcon as StarSolidIcon,
   CheckCircleIcon,
-  XCircleIcon,
+  XMarkIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/solid';
 import { StarIcon } from '@heroicons/react/24/outline';
-import { formatCurrency, formatDate } from '../utils/helpers';
 
-// Hàm lấy màu cho khu vực
 const getRegionColor = (khuVuc) => {
   const colors = {
     'Miền Bắc': 'bg-blue-100 text-blue-700',
@@ -28,7 +28,6 @@ const getRegionColor = (khuVuc) => {
   return colors[khuVuc] || 'bg-gray-100 text-gray-700';
 };
 
-// Hàm lấy icon cho khu vực
 const getRegionIcon = (khuVuc) => {
   const icons = {
     'Miền Bắc': '🏔️',
@@ -43,6 +42,8 @@ const TourDetailPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [selectedSchedule, setSelectedSchedule] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const { data, isLoading, error } = useQuery(
     ['tour-detail', id],
@@ -50,6 +51,46 @@ const TourDetailPage = () => {
   );
 
   const tour = data?.data?.data;
+
+  const openImageModal = (imageUrl, index = 0) => {
+    setSelectedImage(getImageUrl(imageUrl));
+    setCurrentImageIndex(index);
+  };
+
+  const closeImageModal = () => {
+    setSelectedImage(null);
+  };
+
+  // Lấy tất cả ảnh (ảnh chính + ảnh phụ)
+  const getAllImages = () => {
+    const images = [];
+    if (tour?.hinh_anh) {
+      images.push(getImageUrl(tour.hinh_anh));
+    }
+    if (tour?.hinh_anh_phu) {
+      tour.hinh_anh_phu.forEach(img => {
+        images.push(getImageUrl(img));
+      });
+    }
+    return images;
+  };
+
+  const allImages = getAllImages();
+  const totalImages = allImages.length;
+
+  const nextImage = () => {
+    if (currentImageIndex < totalImages - 1) {
+      setCurrentImageIndex(currentImageIndex + 1);
+      setSelectedImage(allImages[currentImageIndex + 1]);
+    }
+  };
+
+  const prevImage = () => {
+    if (currentImageIndex > 0) {
+      setCurrentImageIndex(currentImageIndex - 1);
+      setSelectedImage(allImages[currentImageIndex - 1]);
+    }
+  };
 
   if (isLoading) return <LoadingSpinner />;
   if (error) {
@@ -104,6 +145,9 @@ const TourDetailPage = () => {
   const regionColor = getRegionColor(tour.khu_vuc);
   const regionIcon = getRegionIcon(tour.khu_vuc);
 
+  const hinhAnhPhu = tour.hinh_anh_phu || [];
+  const hasImages = hinhAnhPhu.length > 0;
+
   return (
     <div className="container-custom py-8">
       {/* Breadcrumb */}
@@ -116,25 +160,93 @@ const TourDetailPage = () => {
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column */}
         <div className="lg:col-span-2">
-          {/* Image */}
-          <div className="rounded-xl overflow-hidden mb-6">
-            <img
-              src={tour.hinh_anh || '/images/tour-placeholder.jpg'}
-              alt={tour.ten_tour}
-              className="w-full h-96 object-cover"
-              onError={(e) => {
-                e.target.src = 'https://picsum.photos/seed/tour/600/400';
-              }}
-            />
+          {/* ⭐ GALLERY ẢNH ĐẸP */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+            {/* Ảnh chính lớn */}
+            <div className="relative">
+              <img
+                src={getImageUrl(tour.hinh_anh) || 'https://picsum.photos/seed/tour/800/500'}
+                alt={tour.ten_tour}
+                className="w-full h-[420px] object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                onClick={() => openImageModal(tour.hinh_anh, 0)}
+                onError={(e) => {
+                  e.target.src = 'https://picsum.photos/seed/tour/800/500';
+                }}
+              />
+              
+              {/* Badge số lượng ảnh */}
+              {totalImages > 1 && (
+                <div className="absolute bottom-4 right-4 bg-black/70 text-white text-sm px-3 py-1.5 rounded-full flex items-center gap-2 backdrop-blur-sm">
+                  <span>📸</span>
+                  <span>1 / {totalImages}</span>
+                </div>
+              )}
+              
+              {/* Badge khu vực trên ảnh */}
+              {tour.khu_vuc && (
+                <div className="absolute top-4 left-4">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold shadow-lg backdrop-blur-sm ${regionColor}`}>
+                    <span>{regionIcon}</span>
+                    <span>{tour.khu_vuc}</span>
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* ⭐ Thumbnail ảnh phụ - đẹp hơn */}
+            {hasImages && (
+              <div className="p-4 border-t border-gray-100">
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300">
+                  {/* Ảnh chính thumbnail */}
+                  <div 
+                    className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 border-primary-500 cursor-pointer ring-2 ring-primary-200"
+                    onClick={() => openImageModal(tour.hinh_anh, 0)}
+                  >
+                    <img
+                      src={getImageUrl(tour.hinh_anh) || 'https://picsum.photos/seed/tour/100/100'}
+                      alt="Ảnh chính"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.src = 'https://picsum.photos/seed/tour/100/100';
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Ảnh phụ thumbnails */}
+                  {hinhAnhPhu.map((img, index) => (
+                    <div 
+                      key={index}
+                      className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 border-gray-200 cursor-pointer hover:border-primary-400 transition-all hover:scale-105"
+                      onClick={() => openImageModal(img, index + 1)}
+                    >
+                      <img
+                        src={getImageUrl(img)}
+                        alt={`Ảnh ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = 'https://picsum.photos/seed/tour-sub/100/100';
+                        }}
+                      />
+                      <span className="sr-only">Ảnh {index + 2}</span>
+                    </div>
+                  ))}
+                  
+                  {/* Nếu có nhiều ảnh, hiển thị số lượng */}
+                  {hinhAnhPhu.length > 8 && (
+                    <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-gray-200 flex items-center justify-center text-gray-500 font-medium text-sm">
+                      +{hinhAnhPhu.length - 7}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Title & Info */}
           <h1 className="text-3xl font-bold text-gray-800 mb-4">{tour.ten_tour}</h1>
           
           <div className="flex flex-wrap items-center gap-4 mb-6">
-            {/* ⭐ Đánh giá */}
             <div className="flex items-center gap-1">
               {renderStars(averageRating)}
               <span className="text-gray-600 ml-2">
@@ -142,28 +254,16 @@ const TourDetailPage = () => {
               </span>
             </div>
 
-            {/* 📍 Điểm đến */}
             <div className="flex items-center text-gray-600">
               <MapPinIcon className="w-5 h-5 mr-1" />
               {tour.diem_den}
             </div>
 
-            {/* 🕐 Số ngày */}
             <div className="flex items-center text-gray-600">
               <ClockIcon className="w-5 h-5 mr-1" />
               {tour.so_ngay} ngày
             </div>
           </div>
-
-          {/* 🏷️ HIỂN THỊ TÊN MIỀN / KHU VỰC */}
-          {tour.khu_vuc && (
-            <div className="mb-6">
-              <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${regionColor}`}>
-                <span>{regionIcon}</span>
-                <span>Khu vực: {tour.khu_vuc}</span>
-              </span>
-            </div>
-          )}
 
           {/* Description */}
           <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
@@ -209,7 +309,6 @@ const TourDetailPage = () => {
           <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
             <h3 className="text-xl font-semibold text-gray-800 mb-4">Đặt tour ngay</h3>
 
-            {/* Hiển thị khu vực trong sidebar */}
             {tour.khu_vuc && (
               <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-500">Khu vực</p>
@@ -300,6 +399,71 @@ const TourDetailPage = () => {
           </div>
         </div>
       </div>
+
+      {/* ⭐ MODAL XEM ẢNH LỚN - ĐẸP HƠN VỚI ĐIỀU HƯỚNG */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black/95 flex items-center justify-center z-50 p-4"
+          onClick={closeImageModal}
+        >
+          <div className="relative max-w-5xl w-full max-h-[95vh]">
+            {/* Nút đóng */}
+            <button
+              onClick={closeImageModal}
+              className="absolute -top-14 right-0 text-white/70 hover:text-white text-3xl transition-colors z-10"
+            >
+              <XMarkIcon className="w-8 h-8" />
+            </button>
+
+            {/* Ảnh */}
+            <div className="relative w-full h-full flex items-center justify-center">
+              <img
+                src={selectedImage}
+                alt="Ảnh tour"
+                className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+                onError={(e) => {
+                  e.target.src = 'https://picsum.photos/seed/tour-modal/800/600';
+                }}
+              />
+            </div>
+
+            {/* ⭐ Nút điều hướng ảnh */}
+            {totalImages > 1 && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); prevImage(); }}
+                  disabled={currentImageIndex === 0}
+                  className={`absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-all ${
+                    currentImageIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:scale-110'
+                  }`}
+                >
+                  <ChevronLeftIcon className="w-6 h-6" />
+                </button>
+                
+                <button
+                  onClick={(e) => { e.stopPropagation(); nextImage(); }}
+                  disabled={currentImageIndex === totalImages - 1}
+                  className={`absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-all ${
+                    currentImageIndex === totalImages - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:scale-110'
+                  }`}
+                >
+                  <ChevronRightIcon className="w-6 h-6" />
+                </button>
+
+                {/* Chỉ số ảnh */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm flex items-center gap-2">
+                  <span>📸</span>
+                  <span>{currentImageIndex + 1} / {totalImages}</span>
+                </div>
+              </>
+            )}
+
+            <p className="text-white/50 text-xs text-center mt-4">
+              Nhấn vào bất kỳ đâu để đóng | Dùng phím ← → để chuyển ảnh
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

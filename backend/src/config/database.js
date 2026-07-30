@@ -27,7 +27,8 @@ const sequelize = new Sequelize(
       timestamps: true,
       underscored: true,
       paranoid: true,
-      // ⭐ THÊM DÒNG NÀY ĐỂ TẮT TỰ ĐỘNG TẠO INDEX
+      // KHÔNG tạo thêm index tùy chỉnh nào ngoài index mặc định (PK, FK, Unique)
+      // Lưu ý: indexes: [] KHÔNG tắt được index tự động của Sequelize
       indexes: []
     },
     timezone: '+07:00'

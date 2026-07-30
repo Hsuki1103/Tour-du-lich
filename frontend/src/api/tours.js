@@ -1,3 +1,4 @@
+// frontend/src/api/tours.js
 import axios from './axios';
 
 export const toursAPI = {
@@ -8,26 +9,45 @@ export const toursAPI = {
     
     createTour: (data) => {
         const formData = new FormData();
-        // ⭐ THÊM TẤT CẢ FIELD
-        const fields = ['ten_tour', 'diem_den', 'khu_vuc', 'so_ngay', 'mo_ta_ngan', 
-                       'mo_ta_chi_tiet', 'lich_trinh', 'dich_vu_bao_gom', 
-                       'chinh_sach_huy', 'trang_thai'];
         
-        fields.forEach(key => {
-            if (data.get(key) && data.get(key) !== '') {
-                formData.append(key, data.get(key));
+        // Thêm tất cả text fields
+        const textFields = [
+            'ten_tour', 'diem_den', 'khu_vuc', 'so_ngay', 
+            'mo_ta_ngan', 'mo_ta_chi_tiet', 'lich_trinh', 
+            'dich_vu_bao_gom', 'chinh_sach_huy', 'trang_thai',
+            'lich_khoi_hanh'
+        ];
+        
+        textFields.forEach(key => {
+            const value = data.get(key);
+            if (value !== undefined && value !== null && value !== '') {
+                formData.append(key, value);
             }
         });
         
-        // ⭐ XỬ LÝ FILE RIÊNG
-        if (data.get('hinh_anh') && data.get('hinh_anh') !== 'null') {
-            formData.append('hinh_anh', data.get('hinh_anh'));
+        // Xử lý ảnh chính
+        const mainImage = data.get('hinh_anh');
+        if (mainImage && mainImage instanceof File) {
+            formData.append('hinh_anh', mainImage);
         }
         
-        // ⭐ LOG ĐỂ DEBUG
+        // Xử lý nhiều ảnh phụ
+        const images = data.getAll('hinh_anh_phu');
+        if (images && images.length > 0) {
+            images.forEach(file => {
+                if (file instanceof File) {
+                    formData.append('hinh_anh_phu', file);
+                }
+            });
+        }
+        
+        // Log để debug
         console.log('📤 Sending createTour data:');
         for (let pair of formData.entries()) {
-            console.log(pair[0] + ': ' + (pair[0] === 'hinh_anh' ? '[FILE]' : pair[1]));
+            const value = pair[0] === 'hinh_anh' || pair[0] === 'hinh_anh_phu' 
+                ? `[FILE] ${pair[1].name || pair[1]}` 
+                : pair[1];
+            console.log(pair[0] + ': ' + value);
         }
         
         return axios.post('/tours', formData, {
@@ -37,23 +57,43 @@ export const toursAPI = {
     
     updateTour: (id, data) => {
         const formData = new FormData();
-        const fields = ['ten_tour', 'diem_den', 'khu_vuc', 'so_ngay', 'mo_ta_ngan', 
-                       'mo_ta_chi_tiet', 'lich_trinh', 'dich_vu_bao_gom', 
-                       'chinh_sach_huy', 'trang_thai'];
         
-        fields.forEach(key => {
-            if (data.get(key) && data.get(key) !== '') {
-                formData.append(key, data.get(key));
+        const textFields = [
+            'ten_tour', 'diem_den', 'khu_vuc', 'so_ngay', 
+            'mo_ta_ngan', 'mo_ta_chi_tiet', 'lich_trinh', 
+            'dich_vu_bao_gom', 'chinh_sach_huy', 'trang_thai',
+            'hinh_anh_phu' // JSON string của ảnh phụ cũ
+        ];
+        
+        textFields.forEach(key => {
+            const value = data.get(key);
+            if (value !== undefined && value !== null && value !== '') {
+                formData.append(key, value);
             }
         });
         
-        if (data.get('hinh_anh') && data.get('hinh_anh') !== 'null') {
-            formData.append('hinh_anh', data.get('hinh_anh'));
+        // Xử lý ảnh chính mới
+        const mainImage = data.get('hinh_anh');
+        if (mainImage && mainImage instanceof File) {
+            formData.append('hinh_anh', mainImage);
+        }
+        
+        // Xử lý ảnh phụ mới (upload thêm)
+        const images = data.getAll('hinh_anh_phu_new');
+        if (images && images.length > 0) {
+            images.forEach(file => {
+                if (file instanceof File) {
+                    formData.append('hinh_anh_phu', file);
+                }
+            });
         }
         
         console.log('📤 Sending updateTour data:');
         for (let pair of formData.entries()) {
-            console.log(pair[0] + ': ' + (pair[0] === 'hinh_anh' ? '[FILE]' : pair[1]));
+            const value = pair[0] === 'hinh_anh' || pair[0] === 'hinh_anh_phu' 
+                ? `[FILE] ${pair[1].name || pair[1]}` 
+                : pair[1];
+            console.log(pair[0] + ': ' + value);
         }
         
         return axios.put(`/tours/${id}`, formData, {

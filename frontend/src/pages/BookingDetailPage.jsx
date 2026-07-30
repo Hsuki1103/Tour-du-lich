@@ -32,6 +32,21 @@ import {
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 
+// ⭐ HÀM HELPER ĐỂ PARSE thong_tin_khach
+const parseGuestList = (thongTinKhach) => {
+    if (!thongTinKhach) return [];
+    if (Array.isArray(thongTinKhach)) return thongTinKhach;
+    if (typeof thongTinKhach === 'string') {
+        try {
+            const parsed = JSON.parse(thongTinKhach);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
+    }
+    return [];
+};
+
 const BookingDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -255,266 +270,266 @@ const BookingDetailPage = () => {
         );
     };
 
-// frontend/src/pages/BookingDetailPage.jsx
-// Phần renderRefundInfo - SỬA LẠI ĐỂ LẤY SỐ TIỀN YÊU CẦU
+    // ============================================
+    // ⭐ HÀM HIỂN THỊ THÔNG TIN HOÀN TIỀN
+    // ============================================
+    const renderRefundInfo = () => {
+        if (!booking || booking.trang_thai_don_hang !== 'Đã hủy') return null;
 
-const renderRefundInfo = () => {
-    if (!booking || booking.trang_thai_don_hang !== 'Đã hủy') return null;
+        const thongTin = booking.thong_tin_hoan_tien || {};
+        const isRejected = booking.hoan_tien === 'Từ chối';
+        const isApproved = booking.hoan_tien === 'Đã hoàn';
+        const isPending = booking.hoan_tien === 'Đã yêu cầu';
+        const hasRefundStatus = booking.hoan_tien && booking.hoan_tien !== 'Chưa yêu cầu';
+        
+        if (!hasRefundStatus) return null;
+        
+        // ⭐ XÁC ĐỊNH SỐ TIỀN HIỂN THỊ
+        let displayAmount = 0;
+        let displayLabel = '';
+        
+        if (isRejected) {
+            displayAmount = thongTin.so_tien_yeu_cau || booking.so_tien_hoan || 0;
+            displayLabel = 'Số tiền yêu cầu (đã bị từ chối)';
+        } else if (isApproved) {
+            displayAmount = booking.so_tien_hoan || 0;
+            displayLabel = 'Số tiền đã hoàn';
+        } else {
+            displayAmount = booking.so_tien_hoan || 0;
+            displayLabel = 'Số tiền yêu cầu';
+        }
+        
+        // ⭐ XÁC ĐỊNH MÀU SẮC
+        let bgColor = 'bg-gray-50 border-gray-200';
+        let iconColor = 'text-gray-400';
+        let headerBg = 'bg-gray-100';
+        let headerText = 'text-gray-700';
+        let borderColor = 'border-gray-300';
+        
+        if (isRejected) {
+            bgColor = 'bg-red-50 border-red-200';
+            iconColor = 'text-red-500';
+            headerBg = 'bg-red-100';
+            headerText = 'text-red-700';
+            borderColor = 'border-red-300';
+        } else if (isApproved) {
+            bgColor = 'bg-green-50 border-green-200';
+            iconColor = 'text-green-500';
+            headerBg = 'bg-green-100';
+            headerText = 'text-green-700';
+            borderColor = 'border-green-300';
+        } else if (isPending) {
+            bgColor = 'bg-yellow-50 border-yellow-200';
+            iconColor = 'text-yellow-500';
+            headerBg = 'bg-yellow-100';
+            headerText = 'text-yellow-700';
+            borderColor = 'border-yellow-300';
+        }
 
-    const thongTin = booking.thong_tin_hoan_tien || {};
-    const isRejected = booking.hoan_tien === 'Từ chối';
-    const isApproved = booking.hoan_tien === 'Đã hoàn';
-    const isPending = booking.hoan_tien === 'Đã yêu cầu';
-    const hasRefundStatus = booking.hoan_tien && booking.hoan_tien !== 'Chưa yêu cầu';
-    
-    if (!hasRefundStatus) return null;
-    
-    // ⭐ XÁC ĐỊNH SỐ TIỀN HIỂN THỊ
-    let displayAmount = 0;
-    let displayLabel = '';
-    
-    if (isRejected) {
-        // ⭐ LẤY SỐ TIỀN YÊU CẦU BAN ĐẦU TỪ thong_tin_hoan_tien
-        displayAmount = thongTin.so_tien_yeu_cau || booking.so_tien_hoan || 0;
-        displayLabel = 'Số tiền yêu cầu (đã bị từ chối)';
-    } else if (isApproved) {
-        displayAmount = booking.so_tien_hoan || 0;
-        displayLabel = 'Số tiền đã hoàn';
-    } else {
-        displayAmount = booking.so_tien_hoan || 0;
-        displayLabel = 'Số tiền yêu cầu';
-    }
-    
-    // ⭐ XÁC ĐỊNH MÀU SẮC
-    let bgColor = 'bg-gray-50 border-gray-200';
-    let iconColor = 'text-gray-400';
-    let headerBg = 'bg-gray-100';
-    let headerText = 'text-gray-700';
-    let borderColor = 'border-gray-300';
-    
-    if (isRejected) {
-        bgColor = 'bg-red-50 border-red-200';
-        iconColor = 'text-red-500';
-        headerBg = 'bg-red-100';
-        headerText = 'text-red-700';
-        borderColor = 'border-red-300';
-    } else if (isApproved) {
-        bgColor = 'bg-green-50 border-green-200';
-        iconColor = 'text-green-500';
-        headerBg = 'bg-green-100';
-        headerText = 'text-green-700';
-        borderColor = 'border-green-300';
-    } else if (isPending) {
-        bgColor = 'bg-yellow-50 border-yellow-200';
-        iconColor = 'text-yellow-500';
-        headerBg = 'bg-yellow-100';
-        headerText = 'text-yellow-700';
-        borderColor = 'border-yellow-300';
-    }
+        const bankInfo = thongTin;
+        const isBankTransfer = bankInfo?.phuong_thuc === 'chuyen_khoan';
 
-    const bankInfo = thongTin;
-    const isBankTransfer = bankInfo?.phuong_thuc === 'chuyen_khoan';
+        return (
+            <div className={`p-4 border-b ${bgColor}`}>
+                {/* HEADER */}
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-full ${headerBg}`}>
+                            {isRejected ? (
+                                <XCircleIcon className={`w-6 h-6 ${iconColor}`} />
+                            ) : isApproved ? (
+                                <CheckCircleIcon className={`w-6 h-6 ${iconColor}`} />
+                            ) : (
+                                <ClockIcon className={`w-6 h-6 ${iconColor}`} />
+                            )}
+                        </div>
+                        <div>
+                            <p className={`font-bold text-lg ${headerText}`}>
+                                {isRejected ? '❌ Từ chối hoàn tiền' : 
+                                 isApproved ? '✅ Đã hoàn tiền' : 
+                                 '⏳ Đang chờ xử lý'}
+                            </p>
+                            {isRejected && (
+                                <p className="text-sm text-red-600">
+                                    Yêu cầu hoàn tiền của bạn đã bị từ chối
+                                </p>
+                            )}
+                            {isApproved && (
+                                <p className="text-sm text-green-600">
+                                    Tiền đã được hoàn vào tài khoản của bạn
+                                </p>
+                            )}
+                            {isPending && (
+                                <p className="text-sm text-yellow-600">
+                                    Đang xử lý yêu cầu của bạn
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                    <div>
+                        {getRefundStatusBadge(booking.hoan_tien, thongTin)}
+                    </div>
+                </div>
 
-    return (
-        <div className={`p-4 border-b ${bgColor}`}>
-            {/* ⭐ HEADER */}
-            <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-full ${headerBg}`}>
-                        {isRejected ? (
-                            <XCircleIcon className={`w-6 h-6 ${iconColor}`} />
-                        ) : isApproved ? (
-                            <CheckCircleIcon className={`w-6 h-6 ${iconColor}`} />
-                        ) : (
-                            <ClockIcon className={`w-6 h-6 ${iconColor}`} />
+                {/* THÔNG TIN SỐ TIỀN */}
+                <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 p-3 bg-white rounded-lg border ${borderColor} mb-3`}>
+                    <div>
+                        <p className="text-xs text-gray-500">{displayLabel}</p>
+                        <p className={`font-bold text-lg ${
+                            isRejected ? 'text-red-500 line-through' : 
+                            isApproved ? 'text-green-500' : 
+                            'text-primary-500'
+                        }`}>
+                            {formatCurrency(displayAmount)}
+                        </p>
+                        {isRejected && (
+                            <p className="text-xs text-red-500">⚠️ Đã từ chối, không hoàn tiền</p>
                         )}
                     </div>
                     <div>
-                        <p className={`font-bold text-lg ${headerText}`}>
-                            {isRejected ? '❌ Từ chối hoàn tiền' : 
-                             isApproved ? '✅ Đã hoàn tiền' : 
-                             '⏳ Đang chờ xử lý'}
+                        <p className="text-xs text-gray-500">Tổng tiền đơn hàng</p>
+                        <p className="font-medium text-gray-700">
+                            {formatCurrency(booking.tong_tien)}
                         </p>
-                        {isRejected && (
-                            <p className="text-sm text-red-600">
-                                Yêu cầu hoàn tiền của bạn đã bị từ chối
-                            </p>
-                        )}
-                        {isApproved && (
-                            <p className="text-sm text-green-600">
-                                Tiền đã được hoàn vào tài khoản của bạn
-                            </p>
-                        )}
-                        {isPending && (
-                            <p className="text-sm text-yellow-600">
-                                Đang xử lý yêu cầu của bạn
-                            </p>
-                        )}
+                    </div>
+                    <div>
+                        <p className="text-xs text-gray-500">Trạng thái thanh toán</p>
+                        <p className="font-medium text-gray-700">
+                            {booking.trang_thai_thanh_toan || 'N/A'}
+                        </p>
                     </div>
                 </div>
-                <div>
-                    {getRefundStatusBadge(booking.hoan_tien, thongTin)}
-                </div>
-            </div>
 
-            {/* ⭐ THÔNG TIN SỐ TIỀN */}
-            <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 p-3 bg-white rounded-lg border ${borderColor} mb-3`}>
-                <div>
-                    <p className="text-xs text-gray-500">{displayLabel}</p>
-                    <p className={`font-bold text-lg ${
-                        isRejected ? 'text-red-500 line-through' : 
-                        isApproved ? 'text-green-500' : 
-                        'text-primary-500'
-                    }`}>
-                        {formatCurrency(displayAmount)}
-                    </p>
+                {/* THÔNG TIN CHI TIẾT */}
+                <div className="space-y-3">
+                    {/* Thông tin ngân hàng */}
+                    {bankInfo && Object.keys(bankInfo).length > 0 && (
+                        <div className={`bg-white rounded-lg p-3 border ${borderColor}`}>
+                            <h4 className={`font-semibold ${headerText} mb-2 flex items-center gap-2`}>
+                                {isBankTransfer ? (
+                                    <BuildingLibraryIcon className="w-5 h-5" />
+                                ) : (
+                                    <BanknotesIcon className="w-5 h-5" />
+                                )}
+                                {isBankTransfer ? 'Thông tin chuyển khoản' : 'Phương thức nhận tiền'}
+                            </h4>
+                            
+                            {isBankTransfer ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                    {bankInfo.ten_ngan_hang && (
+                                        <div className="flex justify-between border-b border-gray-100 pb-1">
+                                            <span className="text-gray-500">Ngân hàng</span>
+                                            <span className="font-medium text-gray-700">{bankInfo.ten_ngan_hang}</span>
+                                        </div>
+                                    )}
+                                    {bankInfo.so_tai_khoan && (
+                                        <div className="flex justify-between border-b border-gray-100 pb-1">
+                                            <span className="text-gray-500">Số tài khoản</span>
+                                            <span className="font-mono font-bold text-gray-700">{bankInfo.so_tai_khoan}</span>
+                                        </div>
+                                    )}
+                                    {bankInfo.chu_tai_khoan && (
+                                        <div className="flex justify-between border-b border-gray-100 pb-1">
+                                            <span className="text-gray-500">Chủ tài khoản</span>
+                                            <span className="font-medium text-gray-700">{bankInfo.chu_tai_khoan}</span>
+                                        </div>
+                                    )}
+                                    {bankInfo.chi_nhanh && (
+                                        <div className="flex justify-between border-b border-gray-100 pb-1">
+                                            <span className="text-gray-500">Chi nhánh</span>
+                                            <span className="font-medium text-gray-700">{bankInfo.chi_nhanh}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-gray-600 text-sm">💵 Nhận tiền mặt tại văn phòng</p>
+                            )}
+                            
+                            {bankInfo.so_dien_thoai && (
+                                <div className="mt-2 text-sm flex items-center gap-2 text-gray-600">
+                                    <span>📞</span>
+                                    <span>SĐT liên hệ: <strong>{bankInfo.so_dien_thoai}</strong></span>
+                                </div>
+                            )}
+                            
+                            {bankInfo.ghi_chu && (
+                                <div className="mt-2 p-2 bg-yellow-50 rounded-lg text-sm text-yellow-700">
+                                    📝 Ghi chú: {bankInfo.ghi_chu}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* THỜI GIAN YÊU CẦU */}
+                    {bankInfo.ngay_yeu_cau && (
+                        <div className="flex items-center gap-2 text-sm text-gray-500 bg-white rounded-lg p-2 border border-gray-100">
+                            <CalendarIcon className="w-4 h-4" />
+                            <span>Yêu cầu vào: <strong>{formatDateTime(bankInfo.ngay_yeu_cau)}</strong></span>
+                        </div>
+                    )}
+
+                    {/* HIỂN THỊ THÔNG TIN DUYỆT - CHỈ KHI ĐÃ HOÀN */}
+                    {isApproved && bankInfo.ngay_duyet && (
+                        <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                            <div className="flex items-center gap-2 text-sm text-green-700">
+                                <CheckCircleIcon className="w-4 h-4" />
+                                <span><strong>Đã duyệt:</strong> {formatDateTime(bankInfo.ngay_duyet)}</span>
+                            </div>
+                            {bankInfo.ghi_chu_admin && (
+                                <p className="text-sm text-green-600 mt-1">
+                                    📝 Ghi chú: {bankInfo.ghi_chu_admin}
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* HIỂN THỊ THÔNG TIN TỪ CHỐI - CHỈ KHI BỊ TỪ CHỐI */}
                     {isRejected && (
-                        <p className="text-xs text-red-500">⚠️ Đã từ chối, không hoàn tiền</p>
+                        <div className="bg-red-50 rounded-lg p-3 border border-red-200">
+                            <div className="flex items-start gap-2">
+                                <XCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                    <p className="text-sm font-bold text-red-700">Lý do từ chối:</p>
+                                    <p className="text-sm text-red-600 mt-1">
+                                        {bankInfo.ly_do_tu_choi || 'Không có lý do cụ thể'}
+                                    </p>
+                                    {bankInfo.ngay_tu_choi && (
+                                        <p className="text-xs text-red-500 mt-2">
+                                            📅 Từ chối vào: {formatDateTime(bankInfo.ngay_tu_choi)}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* HIỂN THỊ TRẠNG THÁI ĐANG CHỜ XỬ LÝ */}
+                    {isPending && (
+                        <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                            <div className="flex items-center gap-2 text-sm text-yellow-700">
+                                <ClockIcon className="w-4 h-4 animate-spin" />
+                                <span>Yêu cầu đang được xử lý, vui lòng chờ trong 3-5 ngày làm việc</span>
+                            </div>
+                        </div>
                     )}
                 </div>
-                <div>
-                    <p className="text-xs text-gray-500">Tổng tiền đơn hàng</p>
-                    <p className="font-medium text-gray-700">
-                        {formatCurrency(booking.tong_tien)}
-                    </p>
-                </div>
-                <div>
-                    <p className="text-xs text-gray-500">Trạng thái thanh toán</p>
-                    <p className="font-medium text-gray-700">
-                        {booking.trang_thai_thanh_toan || 'N/A'}
-                    </p>
-                </div>
-            </div>
 
-            {/* ⭐ THÔNG TIN CHI TIẾT */}
-            <div className="space-y-3">
-                {/* Thông tin ngân hàng */}
-                {bankInfo && Object.keys(bankInfo).length > 0 && (
-                    <div className={`bg-white rounded-lg p-3 border ${borderColor}`}>
-                        <h4 className={`font-semibold ${headerText} mb-2 flex items-center gap-2`}>
-                            {isBankTransfer ? (
-                                <BuildingLibraryIcon className="w-5 h-5" />
-                            ) : (
-                                <BanknotesIcon className="w-5 h-5" />
-                            )}
-                            {isBankTransfer ? 'Thông tin chuyển khoản' : 'Phương thức nhận tiền'}
-                        </h4>
-                        
-                        {isBankTransfer ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                                {bankInfo.ten_ngan_hang && (
-                                    <div className="flex justify-between border-b border-gray-100 pb-1">
-                                        <span className="text-gray-500">Ngân hàng</span>
-                                        <span className="font-medium text-gray-700">{bankInfo.ten_ngan_hang}</span>
-                                    </div>
-                                )}
-                                {bankInfo.so_tai_khoan && (
-                                    <div className="flex justify-between border-b border-gray-100 pb-1">
-                                        <span className="text-gray-500">Số tài khoản</span>
-                                        <span className="font-mono font-bold text-gray-700">{bankInfo.so_tai_khoan}</span>
-                                    </div>
-                                )}
-                                {bankInfo.chu_tai_khoan && (
-                                    <div className="flex justify-between border-b border-gray-100 pb-1">
-                                        <span className="text-gray-500">Chủ tài khoản</span>
-                                        <span className="font-medium text-gray-700">{bankInfo.chu_tai_khoan}</span>
-                                    </div>
-                                )}
-                                {bankInfo.chi_nhanh && (
-                                    <div className="flex justify-between border-b border-gray-100 pb-1">
-                                        <span className="text-gray-500">Chi nhánh</span>
-                                        <span className="font-medium text-gray-700">{bankInfo.chi_nhanh}</span>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <p className="text-gray-600 text-sm">💵 Nhận tiền mặt tại văn phòng</p>
-                        )}
-                        
-                        {bankInfo.so_dien_thoai && (
-                            <div className="mt-2 text-sm flex items-center gap-2 text-gray-600">
-                                <span>📞</span>
-                                <span>SĐT liên hệ: <strong>{bankInfo.so_dien_thoai}</strong></span>
-                            </div>
-                        )}
-                        
-                        {bankInfo.ghi_chu && (
-                            <div className="mt-2 p-2 bg-yellow-50 rounded-lg text-sm text-yellow-700">
-                                📝 Ghi chú: {bankInfo.ghi_chu}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* ⭐ THỜI GIAN YÊU CẦU */}
-                {bankInfo.ngay_yeu_cau && (
-                    <div className="flex items-center gap-2 text-sm text-gray-500 bg-white rounded-lg p-2 border border-gray-100">
-                        <CalendarIcon className="w-4 h-4" />
-                        <span>Yêu cầu vào: <strong>{formatDateTime(bankInfo.ngay_yeu_cau)}</strong></span>
-                    </div>
-                )}
-
-                {/* ⭐ HIỂN THỊ THÔNG TIN DUYỆT - CHỈ KHI ĐÃ HOÀN */}
-                {isApproved && bankInfo.ngay_duyet && (
-                    <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                        <div className="flex items-center gap-2 text-sm text-green-700">
-                            <CheckCircleIcon className="w-4 h-4" />
-                            <span><strong>Đã duyệt:</strong> {formatDateTime(bankInfo.ngay_duyet)}</span>
-                        </div>
-                        {bankInfo.ghi_chu_admin && (
-                            <p className="text-sm text-green-600 mt-1">
-                                📝 Ghi chú: {bankInfo.ghi_chu_admin}
-                            </p>
-                        )}
-                    </div>
-                )}
-
-                {/* ⭐ HIỂN THỊ THÔNG TIN TỪ CHỐI - CHỈ KHI BỊ TỪ CHỐI */}
-                {isRejected && (
-                    <div className="bg-red-50 rounded-lg p-3 border border-red-200">
-                        <div className="flex items-start gap-2">
-                            <XCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                            <div className="flex-1">
-                                <p className="text-sm font-bold text-red-700">Lý do từ chối:</p>
-                                <p className="text-sm text-red-600 mt-1">
-                                    {bankInfo.ly_do_tu_choi || 'Không có lý do cụ thể'}
-                                </p>
-                                {bankInfo.ngay_tu_choi && (
-                                    <p className="text-xs text-red-500 mt-2">
-                                        📅 Từ chối vào: {formatDateTime(bankInfo.ngay_tu_choi)}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* ⭐ HIỂN THỊ TRẠNG THÁI ĐANG CHỜ XỬ LÝ */}
-                {isPending && (
-                    <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                        <div className="flex items-center gap-2 text-sm text-yellow-700">
-                            <ClockIcon className="w-4 h-4 animate-spin" />
-                            <span>Yêu cầu đang được xử lý, vui lòng chờ trong 3-5 ngày làm việc</span>
-                        </div>
+                {/* NÚT YÊU CẦU HOÀN TIỀN */}
+                {booking.hoan_tien === 'Chưa yêu cầu' && (
+                    <div className="mt-3">
+                        <button 
+                            onClick={() => setShowRefundForm(true)}
+                            className="btn-primary text-sm whitespace-nowrap flex items-center gap-2"
+                        >
+                            <BanknotesIcon className="w-4 h-4" />
+                            Yêu cầu hoàn tiền
+                        </button>
                     </div>
                 )}
             </div>
+        );
+    };
 
-            {/* ⭐ NÚT YÊU CẦU HOÀN TIỀN */}
-            {booking.hoan_tien === 'Chưa yêu cầu' && (
-                <div className="mt-3">
-                    <button 
-                        onClick={() => setShowRefundForm(true)}
-                        className="btn-primary text-sm whitespace-nowrap flex items-center gap-2"
-                    >
-                        <BanknotesIcon className="w-4 h-4" />
-                        Yêu cầu hoàn tiền
-                    </button>
-                </div>
-            )}
-        </div>
-    );
-};
     const hasOfflinePaymentNote = booking?.yeu_cau_dac_biet?.includes('KHÁCH HÀNG CHỌN THANH TOÁN TẠI VĂN PHÒNG');
 
     if (isLoading) return <LoadingSpinner />;
@@ -542,7 +557,9 @@ const renderRefundInfo = () => {
     
     const isDepositPaid = booking.trang_thai_thanh_toan === 'Đã đặt cọc' && booking.tien_con_lai > 0;
 
-    // Phần còn lại giữ nguyên...
+    // ⭐ PARSE GUEST LIST
+    const guestList = parseGuestList(booking.thong_tin_khach);
+
     return (
         <div className="container-custom py-8">
             <button onClick={() => navigate('/my-bookings')} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6 transition-colors">
@@ -633,10 +650,10 @@ const renderRefundInfo = () => {
                     </div>
                 )}
 
-                {/* ⭐ HIỂN THỊ THÔNG TIN HOÀN TIỀN */}
+                {/* HIỂN THỊ THÔNG TIN HOÀN TIỀN */}
                 {renderRefundInfo()}
 
-                {/* Chi tiết đơn hàng - giữ nguyên phần còn lại */}
+                {/* Chi tiết đơn hàng */}
                 <div className="p-6 space-y-6">
                     {/* Tour Info */}
                     <div>
@@ -651,7 +668,7 @@ const renderRefundInfo = () => {
                         </div>
                     </div>
 
-                    {/* Guest Info */}
+                    {/* Guest Info - ĐÃ SỬA LỖI */}
                     <div>
                         <h3 className="font-semibold text-gray-700 mb-3 text-lg flex items-center gap-2">
                             <UserIcon className="w-5 h-5" /> Thông tin khách
@@ -666,11 +683,13 @@ const renderRefundInfo = () => {
                                 <p className="font-medium text-lg">{booking.so_luong_tre_em || 0}</p>
                             </div>
                         </div>
-                        {booking.thong_tin_khach && booking.thong_tin_khach.length > 0 && (
+                        
+                        {/* ⭐ HIỂN THỊ DANH SÁCH HÀNH KHÁCH - ĐÃ SỬA LỖI */}
+                        {guestList.length > 0 && (
                             <div className="mt-3">
                                 <p className="text-gray-500 text-sm mb-2">Danh sách hành khách:</p>
                                 <div className="bg-white rounded-lg border p-3 space-y-1">
-                                    {booking.thong_tin_khach.map((guest, index) => (
+                                    {guestList.map((guest, index) => (
                                         <div key={index} className="flex justify-between text-sm py-1 border-b last:border-0">
                                             <div>
                                                 <span className="font-medium">{guest.ho_ten}</span>

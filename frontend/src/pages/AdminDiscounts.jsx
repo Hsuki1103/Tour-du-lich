@@ -15,8 +15,15 @@ import {
   CheckIcon,
   EnvelopeIcon,
   GlobeAltIcon,
-  LockClosedIcon
+  LockClosedIcon,
+  MagnifyingGlassIcon,
+  ArrowPathIcon,
+  ChartBarIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon
 } from '@heroicons/react/24/outline';
+import { toast } from 'react-toastify';
 
 const AdminDiscounts = () => {
   const queryClient = useQueryClient();
@@ -36,7 +43,7 @@ const AdminDiscounts = () => {
     ngay_bat_dau: '',
     ngay_ket_thuc: '',
     yeu_cau_toi_thieu: 1,
-    loai_ma: 'public', // ⭐ THÊM TRƯỜNG NÀY
+    loai_ma: 'public',
   });
   const [errors, setErrors] = useState({});
 
@@ -49,6 +56,24 @@ const AdminDiscounts = () => {
   const discounts = data?.data?.data?.items || [];
   const total = data?.data?.data?.total || 0;
   const totalPages = data?.data?.data?.totalPages || 1;
+
+  // ⭐ THỐNG KÊ MÃ GIẢM GIÁ
+  const now = new Date();
+  const stats = {
+    total: discounts.length,
+    active: discounts.filter(d => 
+      d.trang_thai === 'Đang hoạt động' && 
+      new Date(d.ngay_bat_dau) <= now && 
+      new Date(d.ngay_ket_thuc) >= now &&
+      d.so_luong_da_dung < d.so_luong
+    ).length,
+    expired: discounts.filter(d => new Date(d.ngay_ket_thuc) < now).length,
+    usedUp: discounts.filter(d => d.so_luong_da_dung >= d.so_luong).length,
+    public: discounts.filter(d => d.loai_ma === 'public').length,
+    private: discounts.filter(d => d.loai_ma === 'private').length,
+    totalUsed: discounts.reduce((sum, d) => sum + d.so_luong_da_dung, 0),
+    totalAvailable: discounts.reduce((sum, d) => sum + (d.so_luong - d.so_luong_da_dung), 0),
+  };
 
   const discountMutation = useMutation(
     (data) => {
@@ -75,10 +100,10 @@ const AdminDiscounts = () => {
           yeu_cau_toi_thieu: 1,
           loai_ma: 'public',
         });
-        alert(editingDiscount ? 'Cập nhật mã giảm giá thành công!' : 'Thêm mã giảm giá thành công!');
+        toast.success(editingDiscount ? 'Cập nhật mã giảm giá thành công!' : 'Thêm mã giảm giá thành công!');
       },
       onError: (error) => {
-        alert(error.response?.data?.message || 'Lưu mã giảm giá thất bại');
+        toast.error(error.response?.data?.message || 'Lưu mã giảm giá thất bại');
       }
     }
   );
@@ -88,10 +113,10 @@ const AdminDiscounts = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['admin-discounts']);
-        alert('Xóa mã giảm giá thành công!');
+        toast.success('Xóa mã giảm giá thành công!');
       },
       onError: (error) => {
-        alert(error.response?.data?.message || 'Xóa mã giảm giá thất bại');
+        toast.error(error.response?.data?.message || 'Xóa mã giảm giá thất bại');
       }
     }
   );
@@ -108,7 +133,7 @@ const AdminDiscounts = () => {
       ngay_bat_dau: discount.ngay_bat_dau || '',
       ngay_ket_thuc: discount.ngay_ket_thuc || '',
       yeu_cau_toi_thieu: discount.yeu_cau_toi_thieu || 1,
-      loai_ma: discount.loai_ma || 'public', // ⭐ THÊM
+      loai_ma: discount.loai_ma || 'public',
     });
     setShowForm(true);
   };
@@ -120,9 +145,8 @@ const AdminDiscounts = () => {
   };
 
   const handleSendDiscount = (discount) => {
-    // ⭐ CHỈ CHO PHÉP GỬI KHI LÀ MÃ PRIVATE
     if (discount.loai_ma === 'public') {
-      alert('ℹ️ Mã công khai không cần gửi riêng. Ai cũng có thể sử dụng.');
+      toast.info('ℹ️ Mã công khai không cần gửi riêng. Ai cũng có thể sử dụng.');
       return;
     }
     setSelectedDiscountForSend(discount);
@@ -160,7 +184,7 @@ const AdminDiscounts = () => {
       muc_giam: parseFloat(formData.muc_giam),
       so_luong: parseInt(formData.so_luong),
       yeu_cau_toi_thieu: parseInt(formData.yeu_cau_toi_thieu),
-      loai_ma: formData.loai_ma, // ⭐ THÊM
+      loai_ma: formData.loai_ma,
     };
 
     discountMutation.mutate(submitData);
@@ -184,7 +208,6 @@ const AdminDiscounts = () => {
     setErrors({});
   };
 
-  // ⭐ HÀM HIỂN THỊ BADGE LOẠI MÃ
   const getLoaiMaBadge = (loai_ma) => {
     if (loai_ma === 'private') {
       return <span className="badge badge-primary text-xs flex items-center gap-1">
@@ -203,15 +226,24 @@ const AdminDiscounts = () => {
     const start = new Date(discount.ngay_bat_dau);
     const end = new Date(discount.ngay_ket_thuc);
     const isActive = discount.trang_thai === 'Đang hoạt động' && now >= start && now <= end;
+    const isUsedUp = discount.so_luong_da_dung >= discount.so_luong;
 
-    if (isActive) {
-      return <span className="badge badge-success">Đang hoạt động</span>;
-    } else if (discount.so_luong_da_dung >= discount.so_luong) {
-      return <span className="badge badge-danger">Đã hết</span>;
+    if (isActive && !isUsedUp) {
+      return <span className="badge badge-success flex items-center gap-1">
+        <CheckCircleIcon className="w-3 h-3" /> Đang hoạt động
+      </span>;
+    } else if (isUsedUp) {
+      return <span className="badge badge-danger flex items-center gap-1">
+        <XCircleIcon className="w-3 h-3" /> Đã hết
+      </span>;
     } else if (now > end) {
-      return <span className="badge badge-warning">Hết hạn</span>;
+      return <span className="badge badge-warning flex items-center gap-1">
+        <ClockIcon className="w-3 h-3" /> Hết hạn
+      </span>;
     } else {
-      return <span className="badge badge-warning">Sắp diễn ra</span>;
+      return <span className="badge badge-warning flex items-center gap-1">
+        <ClockIcon className="w-3 h-3" /> Sắp diễn ra
+      </span>;
     }
   };
 
@@ -234,15 +266,72 @@ const AdminDiscounts = () => {
           </button>
         </div>
 
+        {/* ⭐ THỐNG KÊ MÃ GIẢM GIÁ */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-xl shadow-sm p-4 text-center border border-gray-200">
+            <div className="flex items-center justify-center mb-2">
+              <GiftIcon className="w-6 h-6 text-blue-500" />
+            </div>
+            <p className="text-sm text-gray-500">Tổng mã</p>
+            <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+          </div>
+          <div className="bg-green-50 rounded-xl shadow-sm p-4 text-center border border-green-200">
+            <div className="flex items-center justify-center mb-2">
+              <CheckCircleIcon className="w-6 h-6 text-green-500" />
+            </div>
+            <p className="text-sm text-green-600">Đang hiệu lực</p>
+            <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+          </div>
+          <div className="bg-yellow-50 rounded-xl shadow-sm p-4 text-center border border-yellow-200">
+            <div className="flex items-center justify-center mb-2">
+              <ClockIcon className="w-6 h-6 text-yellow-500" />
+            </div>
+            <p className="text-sm text-yellow-600">Đã hết hạn</p>
+            <p className="text-2xl font-bold text-yellow-600">{stats.expired + stats.usedUp}</p>
+          </div>
+          <div className="bg-blue-50 rounded-xl shadow-sm p-4 text-center border border-blue-200">
+            <div className="flex items-center justify-center mb-2">
+              <ChartBarIcon className="w-6 h-6 text-blue-500" />
+            </div>
+            <p className="text-sm text-blue-600">Đã sử dụng / Tổng</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {stats.totalUsed}/{stats.totalUsed + stats.totalAvailable}
+            </p>
+          </div>
+        </div>
+
+        {/* ⭐ THỐNG KÊ THEO LOẠI MÃ */}
+        <div className="flex flex-wrap gap-4 mb-6">
+          <div className="bg-gray-50 rounded-lg px-4 py-2 text-sm">
+            <span className="font-medium text-gray-700">🌐 Công khai:</span>
+            <span className="ml-1 text-gray-600">{stats.public}</span>
+          </div>
+          <div className="bg-gray-50 rounded-lg px-4 py-2 text-sm">
+            <span className="font-medium text-gray-700">🔒 Riêng tư:</span>
+            <span className="ml-1 text-gray-600">{stats.private}</span>
+          </div>
+          <div className="bg-gray-50 rounded-lg px-4 py-2 text-sm">
+            <span className="font-medium text-gray-700">📊 Tỷ lệ sử dụng:</span>
+            <span className="ml-1 text-gray-600">
+              {stats.totalUsed + stats.totalAvailable > 0 
+                ? Math.round((stats.totalUsed / (stats.totalUsed + stats.totalAvailable)) * 100) 
+                : 0}%
+            </span>
+          </div>
+        </div>
+
         {/* Search Bar */}
         <div className="mb-6">
-          <input
-            type="text"
-            placeholder="Tìm kiếm mã giảm giá..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="input-field max-w-md"
-          />
+          <div className="relative max-w-md">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm mã giảm giá..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input-field pl-10"
+            />
+          </div>
         </div>
 
         {/* Discounts Table */}
@@ -259,7 +348,7 @@ const AdminDiscounts = () => {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Chương trình</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại mã</th> {/* ⭐ THÊM CỘT */}
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại mã</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Giảm</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số lượng</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thời gian</th>
@@ -275,7 +364,7 @@ const AdminDiscounts = () => {
                         </td>
                         <td className="px-6 py-4">{discount.ten_chuong_trinh}</td>
                         <td className="px-6 py-4">
-                          {getLoaiMaBadge(discount.loai_ma)} {/* ⭐ HIỂN THỊ LOẠI MÃ */}
+                          {getLoaiMaBadge(discount.loai_ma)}
                         </td>
                         <td className="px-6 py-4">
                           {discount.loai_giam === 'Phần trăm' 
@@ -299,7 +388,6 @@ const AdminDiscounts = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            {/* ⭐ NÚT GỬI - CHỈ HIỂN THỊ KHI LÀ MÃ PRIVATE */}
                             {discount.loai_ma === 'private' && (
                               <button
                                 onClick={() => handleSendDiscount(discount)}
@@ -381,8 +469,9 @@ const AdminDiscounts = () => {
           )}
         </div>
 
-        {/* Discount Form Modal */}
+        {/* Discount Form Modal - Giữ nguyên */}
         {showForm && (
+          // ... (giữ nguyên form modal của bạn)
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
@@ -424,7 +513,6 @@ const AdminDiscounts = () => {
                     {errors.ten_chuong_trinh && <p className="text-red-500 text-sm mt-1">{errors.ten_chuong_trinh}</p>}
                   </div>
 
-                  {/* ⭐ TRƯỜNG LOẠI MÃ */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Loại mã giảm giá <span className="text-red-500">*</span>
@@ -560,7 +648,7 @@ const AdminDiscounts = () => {
           </div>
         )}
 
-        {/* Send Discount Modal */}
+        {/* Send Discount Modal - Giữ nguyên */}
         {showSendModal && selectedDiscountForSend && (
           <SendDiscountModal
             discount={selectedDiscountForSend}

@@ -1,3 +1,4 @@
+// frontend/src/components/admin/AdminLayout.jsx
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -13,7 +14,9 @@ import {
   ChevronRightIcon,
   ArrowRightOnRectangleIcon,
   Bars3Icon,
-  XMarkIcon
+  XMarkIcon,
+  TruckIcon,        // ⭐ THÊM
+  CalendarDaysIcon  // ⭐ THÊM
 } from '@heroicons/react/24/outline';
 
 const AdminLayout = ({ children }) => {
@@ -26,6 +29,8 @@ const AdminLayout = ({ children }) => {
   const menuItems = [
     { path: '/admin/dashboard', icon: HomeIcon, label: 'Tổng quan' },
     { path: '/admin/tours', icon: TicketIcon, label: 'Quản lý tour' },
+    { path: '/admin/schedules', icon: CalendarDaysIcon, label: 'Lịch khởi hành' }, // ⭐ THÊM
+    { path: '/admin/vehicles', icon: TruckIcon, label: 'Phương tiện' }, // ⭐ THÊM
     { path: '/admin/bookings', icon: ShoppingBagIcon, label: 'Quản lý đơn hàng' },
     { path: '/admin/users', icon: UserGroupIcon, label: 'Quản lý người dùng' },
     { path: '/admin/discounts', icon: GiftIcon, label: 'Mã giảm giá' },
